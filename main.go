@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/codingconcepts/requestrunner/pkg"
@@ -67,11 +69,15 @@ func runRequests(config string) (err error) {
 }
 
 func runRequest(r pkg.RequestConfig) (err error) {
-	fmt.Printf("[%s]: %s\n", green("TEST"), r.Name)
+	if err = applyEnvironments(&r); err != nil {
+		return errors.Wrap(err, "applying environment")
+	}
+
+	fmt.Printf("[%s]: %s - %s\n", green("TEST"), r.Name, r.URL)
 
 	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
 	if err != nil {
-		return
+		return errors.Wrap(err, "creating request")
 	}
 
 	for k, v := range r.Headers {
@@ -80,7 +86,7 @@ func runRequest(r pkg.RequestConfig) (err error) {
 
 	resp, err := client.Do(request)
 	if err != nil {
-		return errors.Wrapf(err, "performing request %q", r.Name)
+		return errors.Wrap(err, "performing request")
 	}
 	defer resp.Body.Close()
 
@@ -128,11 +134,46 @@ func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
 
 		if getter.Set != "" {
 			environment[getter.Set] = act
-			fmt.Printf("[%s]:  %s\n", yellow("SET"), act)
+			fmt.Printf("\t[%s]:  %s -> %s\n", yellow("SET"), act, getter.Set)
 		}
 	}
 
 	return
+}
+
+func applyEnvironments(r *pkg.RequestConfig) (err error) {
+	r.URL, err = applyEnvironment(r.URL)
+	if err != nil {
+		return
+	}
+
+	r.Body, err = applyEnvironment(r.Body)
+	if err != nil {
+		return
+	}
+
+	for k, v := range r.Headers {
+		r.Headers[k], err = applyEnvironment(v)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func applyEnvironment(input string) (output string, err error) {
+	buf := &bytes.Buffer{}
+	t, err := template.New("anon").Parse(input)
+	if err != nil {
+		return "", err
+	}
+	if err = t.Execute(buf, environment); err != nil {
+		return
+	}
+
+	fmt.Printf("\t[%s]:  %s -> %s\n", yellow("SET"), input, output)
+	return buf.String(), nil
 }
 
 func equals(exp string, act string) (err error) {
