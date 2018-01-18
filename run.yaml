@@ -1,0 +1,73 @@
+- name: create type - missing classification
+  method: POST
+  url: http://localhost/types
+  headers:
+    "Content-Type": "application/json"
+  body: |
+    {
+      "name": "Snow Fairy Shower Gel"
+    }
+  getters:
+  - path: code
+    type: body
+    exp: 422
+
+- name: create type - invalid classification
+  method: POST
+  url: http://localhost/types
+  headers:
+    "Content-Type": "application/json"
+  body: |
+    {
+      "name": "Snow Fairy Shower Gel",
+      "classification": "blah"
+    }
+  getters:
+  - path: code
+    type: body
+    exp: 422
+
+- name: create type - missing name
+  method: POST
+  url: http://localhost/types
+  headers:
+    "Content-Type": "application/json"
+  body: |
+    {
+      "classification": "blah"
+    }
+  getters:
+  - path: code
+    type: body
+    exp: 422
+
+- name: create type - valid request
+  method: POST
+  url: http://localhost/types
+  headers:
+    "Content-Type": "application/json"
+  body: |
+    {
+      "name": "Request Runner Type",
+      "classification": "standard"
+    }
+  getters:
+  - path: code
+    type: body
+    exp: 200
+    set: type-id
+
+# - name: delete type - valid request
+#   method: POST
+#   url: http://localhost/types/{{.type-id}}
+#   headers:
+#     "Content-Type": "application/json"
+#   body: |
+#     {
+#       "name": "Request Runner Type",
+#       "classification": "standard"
+#     }
+#   getters:
+#   - key: type-id
+#     path: data-type-id
+#     type: body
