@@ -1,6 +1,23 @@
+- name: create type - null body
+  method: POST
+  url: http://{{.base_service_url}}/types
+  getters:
+  - { path: code, type: body, exp: 422 }
+
+- name: create type - empty body
+  method: POST
+  url: http://{{.base_service_url}}/types
+  headers:
+    "Content-Type": "application/json"
+  body: |
+    {
+    }
+  getters:
+  - { path: code, type: body, exp: 422 }
+
 - name: create type - missing classification
   method: POST
-  url: http://localhost/types
+  url: http://{{.base_service_url}}/types
   headers:
     "Content-Type": "application/json"
   body: |
@@ -8,13 +25,11 @@
       "name": "Snow Fairy Shower Gel"
     }
   getters:
-  - path: code
-    type: body
-    exp: 422
+  - { path: code, type: body, exp: 422 }
 
 - name: create type - invalid classification
   method: POST
-  url: http://localhost/types
+  url: http://{{.base_service_url}}/types
   headers:
     "Content-Type": "application/json"
   body: |
@@ -23,27 +38,23 @@
       "classification": "blah"
     }
   getters:
-  - path: code
-    type: body
-    exp: 422
+  - { path: code, type: body, exp: 422 }
 
 - name: create type - missing name
   method: POST
-  url: http://localhost/types
+  url: http://{{.base_service_url}}/types
   headers:
     "Content-Type": "application/json"
   body: |
     {
-      "classification": "blah"
+      "classification": "standard"
     }
   getters:
-  - path: code
-    type: body
-    exp: 422
+  - { path: code, type: body, exp: 422 }
 
 - name: create type - valid request
   method: POST
-  url: http://localhost/types
+  url: http://{{.base_service_url}}/types
   headers:
     "Content-Type": "application/json"
   body: |
@@ -52,25 +63,21 @@
       "classification": "standard"
     }
   getters:
-  - path: code
-    type: body
-    exp: 200
-  - path: data.type.id
-    type: body
-    set: typeid
+  - { path: code, type: body, exp: 200 }
+  - { path: data.type.id, type: body, set: type_id }
 
-- name: delete type - valid request
+- name: delete type - invalid id
   method: DELETE
-  url: http://localhost/types/{{.typeid}}
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "name": "Request Runner Type",
-      "classification": "standard"
-    }
+  url: http://{{.base_service_url}}/types/0
   getters:
-  - path: code
-    type: body
-    exp: 200
-    set: type-id
+  - { path: code, type: body, exp: 200 }
+  - { path: data.type.id, type: body, exp: 0 }
+  - { path: data.type.rows_affected, type: body, exp: 0 }
+
+- name: delete type - valid id
+  method: DELETE
+  url: http://{{.base_service_url}}/types/{{.type_id}}
+  getters:
+  - { path: code, type: body, exp: 200 }
+  - { path: data.type.id, type: body, exp: "{{.type_id}}" }
+  - { path: data.type.rows_affected, type: body, exp: 1 }

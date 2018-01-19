@@ -25,11 +25,37 @@ var (
 	yellow = color.New(color.FgYellow).SprintFunc()
 	red    = color.New(color.FgRed).SprintFunc()
 	green  = color.New(color.FgGreen).SprintFunc()
-	blue   = color.New(color.FgBlue).SprintFunc
+	blue   = color.New(color.FgBlue).SprintFunc()
 )
+
+type kvp struct {
+	key   string
+	value string
+}
+
+type kvps []kvp
+
+func (s *kvps) String() string {
+	return "my string representation"
+}
+
+func (i *kvps) Set(value string) (err error) {
+	parts := strings.Split(value, "=")
+
+	*i = append(*i, kvp{
+		key:   parts[0],
+		value: parts[1],
+	})
+	return
+}
 
 func main() {
 	config := flag.String("c", "", "config path")
+	name := flag.String("n", "", "name of specific test to run")
+
+	var envs kvps
+	flag.Var(&envs, "e", "environment variable")
+
 	flag.Parse()
 
 	if config == nil || *config == "" {
@@ -37,17 +63,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Apply user environment configuration.
 	environment = map[string]string{}
+	for _, kvp := range envs {
+		environment[kvp.key] = kvp.value
+	}
+
 	client = &http.Client{
 		Timeout: time.Second,
 	}
 
-	if err := runRequests(*config); err != nil {
-		fmt.Printf("[%s]: %v\n", red("FAIL"), err)
+	if err := runRequests(*config, *name); err != nil {
+		fmt.Printf("\t[%s]: %v\n", red("FAIL"), err)
 	}
 }
 
-func runRequests(config string) (err error) {
+func runRequests(config string, name string) (err error) {
 	var requests []pkg.RequestConfig
 
 	file, err := ioutil.ReadFile(config)
@@ -60,8 +91,12 @@ func runRequests(config string) (err error) {
 	}
 
 	for _, request := range requests {
+		if name != "" && request.Name != name {
+			continue
+		}
+
 		if err = runRequest(request); err != nil {
-			return errors.Wrapf(err, "%s", request.Name)
+			return
 		}
 	}
 
@@ -73,7 +108,7 @@ func runRequest(r pkg.RequestConfig) (err error) {
 		return errors.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s]: %s - %s\n", green("TEST"), r.Name, r.URL)
+	fmt.Printf("[%s]: %s - %s\n", blue("TEST"), r.Name, r.URL)
 
 	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
 	if err != nil {
@@ -95,7 +130,7 @@ func runRequest(r pkg.RequestConfig) (err error) {
 		return errors.Wrap(err, "extracting body")
 	}
 
-	fmt.Printf("[%s]: %s\n", green("PASS"), r.Name)
+	fmt.Printf("\t[%s]\n", green("PASS"))
 	return
 }
 
@@ -159,6 +194,12 @@ func applyEnvironments(r *pkg.RequestConfig) (err error) {
 		}
 	}
 
+	for i := range r.Getters {
+		if r.Getters[i].Expected, err = applyEnvironment(r.Getters[i].Expected); err != nil {
+			return
+		}
+	}
+
 	return
 }
 
@@ -172,7 +213,6 @@ func applyEnvironment(input string) (output string, err error) {
 		return
 	}
 
-	fmt.Printf("\t[%s]:  %s -> %s\n", yellow("SET"), input, output)
 	return buf.String(), nil
 }
 
