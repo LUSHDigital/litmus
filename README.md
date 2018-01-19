@@ -59,3 +59,4 @@ $ requestrunner -c run.yaml -e base_service_url=localhost
 * interface for different types of path parsers (json, xml etc.)
 * get response body into output for failures
 * tidy up `main.go`
+* rename to `litmus`

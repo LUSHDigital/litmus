@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -19,8 +21,10 @@ import (
 )
 
 var (
-	environment map[string]string
-	client      *http.Client
+	environment = map[string]string{}
+	client      = &http.Client{
+		Timeout: time.Second,
+	}
 
 	yellow = color.New(color.FgYellow).SprintFunc()
 	red    = color.New(color.FgRed).SprintFunc()
@@ -42,31 +46,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Apply user environment configuration.
-	environment = map[string]string{}
+	setEnvironmentFile(*config)
+
+	// Set environment from user args.
 	for _, kvp := range envs {
 		environment[kvp.Key] = kvp.Value
 	}
 
-	client = &http.Client{
-		Timeout: time.Second,
-	}
-
 	if err := runRequests(*config, *name); err != nil {
-		fmt.Printf("\t[%s]: %v\n", red("FAIL"), err)
+		fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
 	}
 }
 
 func runRequests(config string, name string) (err error) {
-	var requests []pkg.RequestConfig
-
-	file, err := ioutil.ReadFile(config)
+	requests, err := loadRequests(config)
 	if err != nil {
-		return errors.Wrap(err, "reading config file")
-	}
-
-	if err = yaml.Unmarshal(file, &requests); err != nil {
-		return errors.Wrap(err, "unmarshalling requests")
+		return err
 	}
 
 	for _, request := range requests {
@@ -82,12 +77,31 @@ func runRequests(config string, name string) (err error) {
 	return
 }
 
+func loadRequests(config string) (requests []pkg.RequestConfig, err error) {
+	config = strings.TrimSuffix(config, "/") + "/"
+	files, err := filepath.Glob(config + "*_test.yaml")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		var r []pkg.RequestConfig
+		if err = unmarhsal(file, &r); err != nil {
+			return
+		}
+
+		requests = append(requests, r...)
+	}
+
+	return
+}
+
 func runRequest(r pkg.RequestConfig) (err error) {
 	if err = applyEnvironments(&r); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s]: %s - %s\n", blue("TEST"), r.Name, r.URL)
+	fmt.Printf("[%s] %s - %s\n", blue("TEST"), r.Name, r.URL)
 
 	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
 	if err != nil {
@@ -148,7 +162,7 @@ func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
 
 		if getter.Set != "" {
 			environment[getter.Set] = act
-			fmt.Printf("\t[%s]:  %s -> %s\n", yellow("SET"), act, getter.Set)
+			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
 		}
 	}
 
@@ -193,6 +207,41 @@ func applyEnvironment(input string) (output string, err error) {
 	}
 
 	return buf.String(), nil
+}
+
+func setEnvironmentFile(config string) (err error) {
+	fullPath := filepath.Join(config, "env.yaml")
+
+	// If the file doesn't exist, nil out the error because
+	// this isn't a show-stopper.
+	if _, err = os.Stat(fullPath); err != nil {
+		log.Printf("env file %q does not exist", fullPath)
+		return nil
+	}
+
+	var envConfigs []pkg.EnvironmentConfig
+	if err = unmarhsal(fullPath, &envConfigs); err != nil {
+		return
+	}
+
+	for _, envConfig := range envConfigs {
+		environment[envConfig.Key] = envConfig.Value
+	}
+
+	return
+}
+
+func unmarhsal(fullPath string, target interface{}) (err error) {
+	file, err := ioutil.ReadFile(fullPath)
+	if err != nil {
+		return errors.Wrap(err, "reading file")
+	}
+
+	if err = yaml.Unmarshal(file, target); err != nil {
+		return errors.Wrap(err, "unmarshalling")
+	}
+
+	return
 }
 
 func equals(exp string, act string) (err error) {

@@ -1,4 +1,3 @@
---- # Types
 - name: create type - null body
   method: POST
   url: http://{{.base_service_url}}/types
@@ -23,7 +22,7 @@
     "Content-Type": "application/json"
   body: |
     {
-      "name": "Snow Fairy Shower Gel"
+      "name": "{{.type_name}}"
     }
   getters:
   - { path: code, type: body, exp: 422 }
@@ -35,7 +34,7 @@
     "Content-Type": "application/json"
   body: |
     {
-      "name": "Snow Fairy Shower Gel",
+      "name": "{{.type_name}}",
       "classification": "blah"
     }
   getters:
@@ -48,7 +47,7 @@
     "Content-Type": "application/json"
   body: |
     {
-      "classification": "standard"
+      "classification": "{{.type_classification}}"
     }
   getters:
   - { path: code, type: body, exp: 422 }
@@ -60,12 +59,28 @@
     "Content-Type": "application/json"
   body: |
     {
-      "name": "Request Runner Type",
-      "classification": "standard"
+      "name": "{{.type_name}}",
+      "classification": "{{.type_classification}}"
     }
   getters:
   - { path: code, type: body, exp: 200 }
   - { path: data.type.id, type: body, set: type_id }
+
+- name: find type - invalid id
+  method: GET
+  url: http://{{.base_service_url}}/types/0
+  getters:
+  - { path: code, type: body, exp: 422 }
+  - { path: message, type: body, exp: "no data found" }
+
+- name: find type - valid id
+  method: GET
+  url: http://{{.base_service_url}}/types/{{.type_id}}
+  getters:
+  - { path: code, type: body, exp: 200 }
+  - { path: data.type.classification, type: body, exp: "{{.type_classification}}" }
+  - { path: data.type.id, type: body, exp: "{{.type_id}}" }
+  - { path: data.type.name, type: body, exp: "{{.type_name}}" }
 
 - name: delete type - invalid id
   method: DELETE

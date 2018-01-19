@@ -19,6 +19,13 @@ type GetterConfig struct {
 	Expected string `yaml:"exp"`
 }
 
+// EnvironmentConfig allows for the static configuration
+// of key-value pairs.
+type EnvironmentConfig struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+
 // GetterConfigs is a slice of GetterConfig.
 type GetterConfigs []GetterConfig
 
