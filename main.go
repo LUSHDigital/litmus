@@ -13,7 +13,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/codingconcepts/requestrunner/pkg"
+	"github.com/codingconcepts/litmus/pkg"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 

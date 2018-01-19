@@ -1,18 +1,18 @@
-# requestrunner
+# litmus
 Run automated HTTP requests from the command line.
 
 ## installation
 
 ```bash
-$ go get -u github.com/codingconcepts/requestrunner
+$ go get -u github.com/codingconcepts/litmus
 ```
 
 ## usage
 
 ```bash
-requestrunner -h
+litmus -h
     -c string
-        config path (default "run.yaml")
+        config path (default "routesdir")
   -e value
         environment variable
   -n string
@@ -24,6 +24,20 @@ requestrunner -h
 In this example, we talk to a local service that manages "types".  We first create a type, capture the ID that was assigned to it in the database, then delete it using the ID captured:
 
 ### config
+
+The `env.yaml` file contains environment configuration that's shared between test files.
+
+```yaml
+- key: type_name
+  value: Litmus Type Name
+
+- key: type_classification
+  value: standard
+```
+
+### tests
+
+The `*_test.yaml` files contain the requests that will be made.  They're executed in the order they appear in the directory.
 
 ```yaml
 - name: create type - valid request
@@ -52,7 +66,7 @@ In this example, we talk to a local service that manages "types".  We first crea
 ### run command
 
 ```bash
-$ requestrunner -c run.yaml -e base_service_url=localhost
+$ litmus -c routesdir -e base_service_url=localhost
 ```
 
 ## todo
