@@ -1,3 +1,4 @@
+--- # Types
 - name: create type - null body
   method: POST
   url: http://{{.base_service_url}}/types

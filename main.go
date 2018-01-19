@@ -28,32 +28,11 @@ var (
 	blue   = color.New(color.FgBlue).SprintFunc()
 )
 
-type kvp struct {
-	key   string
-	value string
-}
-
-type kvps []kvp
-
-func (s *kvps) String() string {
-	return "my string representation"
-}
-
-func (i *kvps) Set(value string) (err error) {
-	parts := strings.Split(value, "=")
-
-	*i = append(*i, kvp{
-		key:   parts[0],
-		value: parts[1],
-	})
-	return
-}
-
 func main() {
 	config := flag.String("c", "", "config path")
 	name := flag.String("n", "", "name of specific test to run")
 
-	var envs kvps
+	var envs pkg.KeyValuePairs
 	flag.Var(&envs, "e", "environment variable")
 
 	flag.Parse()
@@ -66,7 +45,7 @@ func main() {
 	// Apply user environment configuration.
 	environment = map[string]string{}
 	for _, kvp := range envs {
-		environment[kvp.key] = kvp.value
+		environment[kvp.Key] = kvp.Value
 	}
 
 	client = &http.Client{
