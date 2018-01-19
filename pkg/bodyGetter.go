@@ -31,7 +31,7 @@ func NewBodyGetter(resp *http.Response) (e BodyGetter, err error) {
 type JSONBodyGetter struct {
 }
 
-// Extract extracts a value out of a JSON body using JSON
+// Get extracts a value out of a JSON body using JSON
 // dot notation.
 func (e *JSONBodyGetter) Get(c GetterConfig, body []byte) (value string, err error) {
 	result := gjson.GetBytes(body, c.Path)

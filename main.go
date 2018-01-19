@@ -48,7 +48,8 @@ func main() {
 
 	setEnvironmentFile(*config)
 
-	// Set environment from user args.
+	// Set environment from user args, taking precedence
+	// over the environment config in env.yaml.
 	for _, kvp := range envs {
 		environment[kvp.Key] = kvp.Value
 	}
@@ -128,9 +129,20 @@ func runRequest(r pkg.RequestConfig) (err error) {
 }
 
 func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
-	// If there's nothing in the body to extract, return early.
-	bodyGetters := r.Getters.Filter("body")
-	if len(bodyGetters) == 0 {
+	if err = extractBody(r, resp); err != nil {
+		return
+	}
+
+	if err = extractHeader(r, resp); err != nil {
+		return
+	}
+
+	return
+}
+
+func extractBody(r pkg.RequestConfig, resp *http.Response) (err error) {
+	getters := r.Getters.Filter("body")
+	if len(getters) == 0 {
 		return
 	}
 
@@ -148,8 +160,37 @@ func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
 	}
 	defer resp.Body.Close()
 
-	for _, getter := range bodyGetters {
+	for _, getter := range getters {
 		act, err := bodyGetter.Get(getter, respBody)
+		if err != nil {
+			return err
+		}
+
+		if getter.Expected != "" {
+			if err = equals(getter.Expected, act); err != nil {
+				return errors.Wrap(err, "assertion failed")
+			}
+		}
+
+		if getter.Set != "" {
+			environment[getter.Set] = act
+			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
+		}
+	}
+
+	return
+}
+
+func extractHeader(r pkg.RequestConfig, resp *http.Response) (err error) {
+	getters := r.Getters.Filter("head")
+	if len(getters) == 0 {
+		return
+	}
+
+	headerGetter := &pkg.HeaderGetter{}
+
+	for _, getter := range getters {
+		act, err := headerGetter.Get(getter, resp.Header)
 		if err != nil {
 			return err
 		}

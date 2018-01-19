@@ -70,7 +70,8 @@ $ litmus -c routesdir -e base_service_url=localhost
 ```
 
 ## todo
-* interface for different types of path parsers (json, xml etc.)
+* unit tests
 * get response body into output for failures
 * tidy up `main.go`
-* rename to `litmus`
+* support multiple header values (currently just first), possibly with optional indexer:
+  * Content-Type,0 == Content-Type
