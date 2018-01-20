@@ -32,3 +32,14 @@ type GetterConfig struct {
 	Type     string `toml:"type"`
 	Expected string `toml:"exp"`
 }
+
+// Filter filters a slice of getter configs by a
+// given type.
+func (c GetterConfigs) Filter(t string) (filtered GetterConfigs) {
+	for _, config := range c {
+		if config.Type == t {
+			filtered = append(filtered, config)
+		}
+	}
+	return
+}
