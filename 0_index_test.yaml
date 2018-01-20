@@ -1,0 +1,5 @@
+- name: index
+  method: GET
+  url: http://httpbin.org/get
+  getters:
+  - { type: head, path: Content-Type, exp: application/json, set: content_type }

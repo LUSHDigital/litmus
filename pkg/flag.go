@@ -11,18 +11,23 @@ type KeyValuePair struct {
 	Value string
 }
 
-// KeyValuePairs is a slice of KeyValuePair.
+// KeyValuePairs is the slice type for KeyValuePair
 type KeyValuePairs []KeyValuePair
 
-// Set adds an item to KeyValuePairs.
-func (kvps *KeyValuePairs) Set(value string) (err error) {
-	parts := strings.Split(value, "=")
-
-	*kvps = append(*kvps, KeyValuePair{Key: parts[0], Value: parts[1]})
-	return
+// String returns the string representation of KeyValuePairs.
+func (k *KeyValuePairs) String() string {
+	return fmt.Sprintf("%#+v", k)
 }
 
-// String returns the string representation of KeyValuePairs.
-func (kvps *KeyValuePairs) String() string {
-	return fmt.Sprintf("%v", *kvps)
+// Set adds an item to KeyValuePairs.
+func (k *KeyValuePairs) Set(value string) error {
+	parts := strings.Split(value, "=")
+
+	*k = append(*k, KeyValuePair{Key: parts[0], Value: parts[1]})
+	return nil
+}
+
+// Type returns a string representation of the type of KeyValuePairs
+func (k *KeyValuePairs) Type() string {
+	return fmt.Sprintf("%T", k)
 }

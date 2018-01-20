@@ -2,12 +2,13 @@ package pkg
 
 // RequestConfig describes a request to make.
 type RequestConfig struct {
-	Name    string            `yaml:"name"`
-	Method  string            `yaml:"method"`
-	URL     string            `yaml:"url"`
-	Headers map[string]string `yaml:"headers"`
-	Body    string            `yaml:"body"`
-	Getters GetterConfigs     `yaml:"getters"`
+	Name      string            `yaml:"name"`
+	Method    string            `yaml:"method"`
+	URL       string            `yaml:"url"`
+	Headers   map[string]string `yaml:"headers"`
+	Body      string            `yaml:"body"`
+	Getters   GetterConfigs     `yaml:"getters"`
+	WantsCode int               `yaml:"wants_code"`
 }
 
 // GetterConfig provides the information required

@@ -1,31 +1,23 @@
-- name: create type - null body
-  method: POST
-  url: http://{{.base_service_url}}/types
-  getters:
-  - { type: body, path: code, exp: 422 }
+- name: httpbin get - check code
+  method: GET
+  url: https://{{.base_service_url}}/get
+  wants_code: 200
 
-- name: create type - empty body
+- name: httpbin get - check body
+  method: GET
+  url: http://{{.base_service_url}}/get
+  getters:
+  - { type: body, path: headers.Connection, exp: close }
+
+- name: httpbin post - returns post data
   method: POST
-  url: http://{{.base_service_url}}/types
+  url: http://{{.base_service_url}}/post
   headers:
     "Content-Type": "application/json"
   body: |
-    {
-    }
+    {"from_env":"{{.example_value}}"}
   getters:
-  - { type: body, path: code, exp: 422 }
-
-- name: create type - missing classification
-  method: POST
-  url: http://{{.base_service_url}}/types
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "name": "{{.type_name}}"
-    }
-  getters:
-  - { type: body, path: code, exp: 422 }
+  - { type: body, path: json.from_env, exp: "some example value" }
 
 - name: create type - invalid classification
   method: POST

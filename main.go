@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,9 +12,11 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/codingconcepts/litmus/pkg"
 	"github.com/fatih/color"
+	"github.com/ladydascalie/litmus/internal"
+	"github.com/ladydascalie/litmus/pkg"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"gopkg.in/yaml.v2"
 )
@@ -32,30 +33,44 @@ var (
 	blue   = color.New(color.FgBlue).SprintFunc()
 )
 
+func init() {
+	log.SetFlags(0)
+}
+
 func main() {
-	config := flag.String("c", "", "config path")
-	name := flag.String("n", "", "name of specific test to run")
+	// prepare the environment
+	var configPath string
+	var testByName string
+	var eVariables pkg.KeyValuePairs
 
-	var envs pkg.KeyValuePairs
-	flag.Var(&envs, "e", "environment variable")
+	rootCmd := cobra.Command{
+		Use:   "litmus",
+		Short: "Run automated HTTP requests.",
+		Long:  litmusBanner + longHelp,
+		Run: func(cmd *cobra.Command, args []string) {
+			setEnvironmentFile(configPath)
 
-	flag.Parse()
+			// Set environment from user args, taking precedence
+			// over the environment config in env.yaml.
+			for _, kvp := range eVariables {
+				environment[kvp.Key] = kvp.Value
+			}
 
-	if config == nil || *config == "" {
-		flag.Usage()
-		os.Exit(1)
+			if err := runRequests(configPath, testByName); err != nil {
+				fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
+			}
+		},
 	}
+	// see usages.go for all usages
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", cFlagUsage)
+	rootCmd.Flags().StringVarP(&testByName, "test", "n", "", nFlagUsage)
+	rootCmd.Flags().VarP(&eVariables, "env", "e", eFlagUsage)
 
-	setEnvironmentFile(*config)
+	// enforce the required flags
+	rootCmd.MarkFlagRequired("config")
 
-	// Set environment from user args, taking precedence
-	// over the environment config in env.yaml.
-	for _, kvp := range envs {
-		environment[kvp.Key] = kvp.Value
-	}
-
-	if err := runRequests(*config, *name); err != nil {
-		fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -83,6 +98,9 @@ func loadRequests(config string) (requests []pkg.RequestConfig, err error) {
 	files, err := filepath.Glob(config + "*_test.yaml")
 	if err != nil {
 		return nil, err
+	}
+	if len(files) == 0 {
+		log.Fatalf("no test files found in %s folder", config)
 	}
 
 	for _, file := range files {
@@ -124,20 +142,27 @@ func runRequest(r pkg.RequestConfig) (err error) {
 		return errors.Wrap(err, "extracting body")
 	}
 
+	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
+		return errors.Errorf("expected response code: %s, but got: %s",
+			internal.HttpStatusFmt(r.WantsCode),
+			internal.HttpStatusFmt(resp.StatusCode),
+		)
+	}
+
 	fmt.Printf("\t[%s]\n", green("PASS"))
 	return
 }
 
-func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
-	if err = extractBody(r, resp); err != nil {
-		return
+func processBody(r pkg.RequestConfig, resp *http.Response) error {
+	if err := extractBody(r, resp); err != nil {
+		return err
 	}
 
-	if err = extractHeader(r, resp); err != nil {
-		return
+	if err := extractHeader(r, resp); err != nil {
+		return err
 	}
 
-	return
+	return nil
 }
 
 func extractBody(r pkg.RequestConfig, resp *http.Response) (err error) {
