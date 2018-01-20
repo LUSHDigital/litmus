@@ -1,0 +1,48 @@
+[litmus]
+
+# this test checks if a 200 content response is obtainable from the server
+[[litmus.test]]
+name="httpbin get - check code"
+method="GET"
+url="https://{{.base_service_url}}/get"
+wants_code=200
+
+# this test checks if the body contains the "Connection" field, set to the value "close"
+[[litmus.test]]
+name="httpbin get - check body"
+method= "GET"
+url= "http://{{.base_service_url}}/get"
+[[litmus.test.getters]]
+type="body"
+path="headers.Connection"
+exp="close"
+
+# etc. etc. commenting tests is a good idea.
+[[litmus.test]]
+name= "httpbin post - returns post data"
+method= "POST"
+url="http://{{.base_service_url}}/post"
+wants_code= 200
+headers=["Content-Type: application/json"]
+body='''
+{"from_env":"{{.example_value}}"}
+'''
+[[litmus.test.getters]]
+type="body"
+path="json.from_env"
+exp="some example value"
+
+[[litmus.test]]
+name="httpbin - check gzip headers"
+method= "GET"
+url="https://{{.base_service_url}}/gzip"
+wants_code=200
+[[litmus.test.getters]]
+type="head"
+path="Content-Encoding"
+exp="gzip"
+[[litmus.test.getters]]
+type="head"
+path="Content-Type"
+exp="application/json"
+
