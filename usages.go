@@ -10,7 +10,7 @@ const (
 ╚══════╝╚═╝   ╚═╝   ╚═╝     ╚═╝ ╚═════╝ ╚══════╝
 ════════════════════════════════════════════════
 `
-	longHelp = `Litmus helps you perform HTTP tests by providing a simple, YAML based DSL
+	longHelp = `Litmus helps you perform HTTP tests by providing a simple, TOML based DSL
 for you to write endpoint tests with`
 
 	cFlagUsage = "path to configuration folder"
