@@ -12,80 +12,17 @@
 - name: httpbin post - returns post data
   method: POST
   url: http://{{.base_service_url}}/post
+  wants_code: 200
   headers:
     "Content-Type": "application/json"
   body: |
     {"from_env":"{{.example_value}}"}
   getters:
-  - { type: body, path: json.from_env, exp: "some example value" }
+  - { type: body, path: json.from_env, exp: some example value }
 
-- name: create type - invalid classification
-  method: POST
-  url: http://{{.base_service_url}}/types
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "name": "{{.type_name}}",
-      "classification": "blah"
-    }
-  getters:
-  - { type: body, path: code, exp: 422 }
-
-- name: create type - missing name
-  method: POST
-  url: http://{{.base_service_url}}/types
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "classification": "{{.type_classification}}"
-    }
-  getters:
-  - { type: body, path: code, exp: 422 }
-
-- name: create type - valid request
-  method: POST
-  url: http://{{.base_service_url}}/types
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "name": "{{.type_name}}",
-      "classification": "{{.type_classification}}"
-    }
-  getters:
-  - { type: body, path: code, exp: 200 }
-  - { type: body, path: data.type.id, set: type_id }
-
-- name: find type - invalid id
+- name: httpbin - check gzip headers
   method: GET
-  url: http://{{.base_service_url}}/types/0
+  url: https://{{.base_service_url}}/gzip
+  wants_code: 200
   getters:
-  - { type: body, path: code, exp: 422 }
-  - { type: body, path: message, exp: "no data found" }
-
-- name: find type - valid id
-  method: GET
-  url: http://{{.base_service_url}}/types/{{.type_id}}
-  getters:
-  - { type: body, path: code, exp: 200 }
-  - { type: body, path: data.type.classification, exp: "{{.type_classification}}" }
-  - { type: body, path: data.type.id, exp: "{{.type_id}}" }
-  - { type: body, path: data.type.name, exp: "{{.type_name}}" }
-
-- name: delete type - invalid id
-  method: DELETE
-  url: http://{{.base_service_url}}/types/0
-  getters:
-  - { type: body, path: code, exp: 200 }
-  - { type: body, path: data.type.id, exp: 0 }
-  - { type: body, path: data.type.rows_affected, exp: 0 }
-
-- name: delete type - valid id
-  method: DELETE
-  url: http://{{.base_service_url}}/types/{{.type_id}}
-  getters:
-  - { type: body, path: code, exp: 200 }
-  - { type: body, path: data.type.id, exp: "{{.type_id}}" }
-  - { type: body, path: data.type.rows_affected, exp: 1 }
+  - { type: head, path: Content-Encoding, exp: gzip}
