@@ -23,6 +23,9 @@ import (
 
 // StatusCode - extracts the status code and checks it against the expected value
 func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interface{}) error {
+	if resp == nil {
+		return e.New("unexpected nil response")
+	}
 	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
 		return e.Errorf("expected response code: %s, but got: %s",
 			internal.HttpStatusFmt(r.WantsCode),
@@ -34,6 +37,9 @@ func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interfac
 
 // Body - checks the body against the expected value
 func Body(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+	if resp == nil {
+		return e.New("unexpected nil response")
+	}
 	getters := r.Getters.Filter("body")
 	if len(getters) == 0 {
 		return nil
@@ -66,6 +72,9 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 		}
 
 		if getter.Set != "" {
+			if env == nil {
+				return e.Errorf("error setting environment variable %s", getter.Set)
+			}
 			env[getter.Set] = act
 			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
 		}
@@ -76,6 +85,9 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 
 // Header - extracts a header value and checks it against the expected value
 func Header(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+	if resp == nil {
+		return e.New("unexpected nil response")
+	}
 	getters := r.Getters.Filter("head")
 	if len(getters) == 0 {
 		return nil
@@ -96,6 +108,9 @@ func Header(r format.RequestTest, resp *http.Response, env map[string]interface{
 		}
 
 		if getter.Set != "" {
+			if env == nil {
+				return e.Errorf("error setting environment variable %s", getter.Set)
+			}
 			env[getter.Set] = act
 			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
 		}

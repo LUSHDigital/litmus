@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ladydascalie/litmus/format"
+	"github.com/pkg/errors"
 )
 
 // HeaderGetter extracts information from response headers.
@@ -16,5 +17,5 @@ func (e *HeaderGetter) Get(c format.GetterConfig, header http.Header) (value str
 			return v[0], nil
 		}
 	}
-	return
+	return "", errors.New("no matching header found")
 }
