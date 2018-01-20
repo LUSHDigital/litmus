@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ladydascalie/litmus/format"
 	"github.com/ladydascalie/litmus/internal/extract"
 	"github.com/ladydascalie/litmus/p"
@@ -203,7 +202,6 @@ func applyEnvironment(input string) (output string, err error) {
 
 func setEnvironmentFile(config string) (error) {
 	fullPath := filepath.Join(config, "env.toml")
-	spew.Dump(fullPath)
 
 	// If the file doesn't exist, nil out the error because
 	// this isn't a show-stopper.
