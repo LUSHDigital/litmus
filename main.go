@@ -17,7 +17,7 @@ import (
 	"github.com/codingconcepts/litmus/internal/extract"
 	"github.com/codingconcepts/litmus/p"
 	"github.com/codingconcepts/litmus/pkg"
-	e "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -117,14 +117,14 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 
 func runRequest(r format.RequestTest) (err error) {
 	if err = applyEnvironments(&r); err != nil {
-		return e.Wrap(err, "applying environment")
+		return errors.Wrap(err, "applying environment")
 	}
 
 	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), r.Name, r.URL)
 
 	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
 	if err != nil {
-		return e.Wrap(err, "creating request")
+		return errors.Wrap(err, "creating request")
 	}
 
 	for k, v := range r.Headers {
@@ -139,13 +139,13 @@ func runRequest(r format.RequestTest) (err error) {
 
 	resp, err := client.Do(request)
 	if err != nil {
-		return e.Wrap(err, "performing request")
+		return errors.Wrap(err, "performing request")
 	}
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
 	if err = processResponse(r, resp); err != nil {
-		return e.Wrap(err, "extracting body")
+		return errors.Wrap(err, "extracting body")
 	}
 
 	fmt.Printf("\t[%s]\n", p.Green("PASS"))
@@ -159,11 +159,8 @@ func processResponse(r format.RequestTest, resp *http.Response) error {
 	if err := extract.Header(r, resp, environment); err != nil {
 		return err
 	}
-	if err := extract.Body(r, resp, environment); err != nil {
-		return err
-	}
 
-	return nil
+	return extract.Body(r, resp, environment)
 }
 
 func applyEnvironments(r *format.RequestTest) (err error) {
@@ -222,19 +219,17 @@ func setEnvironmentFile(config string) error {
 		log.Printf("env file %q does not exist", fullPath)
 		return nil
 	}
-	if err := unmarhsal(fullPath, &environment); err != nil {
-		return err
-	}
-	return nil
+
+	return unmarhsal(fullPath, &environment)
 }
 
 func unmarhsal(fullPath string, target interface{}) (err error) {
 	file, err := ioutil.ReadFile(fullPath)
 	if err != nil {
-		return e.Wrap(err, "reading file")
+		return errors.Wrap(err, "reading file")
 	}
 	if err = toml.Unmarshal(file, target); err != nil {
-		return e.Wrap(err, "unmarshalling")
+		return errors.Wrap(err, "unmarshalling")
 	}
 
 	return

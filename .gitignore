@@ -6,3 +6,12 @@ litmus
 
 # test data contained within packages
 */testdata
+
+# vscode settings
+launch.json
+
+# debug output
+debug
+
+# test artifacts
+coverage.out

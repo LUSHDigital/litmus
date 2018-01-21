@@ -18,11 +18,15 @@ func TestStatusCode(t *testing.T) {
 		Reply(200)
 
 	okResp, err := http.Get(binPath + "/get")
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	gock.New(binPath).Get("/get").Reply(500)
+	gock.New(binPath).
+		Get("/get").
+		Reply(500)
+
 	failResp, err := http.Get(binPath + "/get")
 	if err != nil {
 		t.Fatal(err)
@@ -74,14 +78,21 @@ func TestStatusCode(t *testing.T) {
 
 func TestBody(t *testing.T) {
 	defer gock.Off()
-	gock.New(binPath).Get("/get").Reply(200).SetHeader("Content-Type", "application/json").BodyString(`{"hello":"world""}`)
+	gock.New(binPath).
+		Get("/get").
+		Reply(200).
+		SetHeader("Content-Type", "application/json").
+		BodyString(`{"hello":"world""}`)
 
 	res, err := http.Get(binPath + "/get")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	gock.New(binPath).Get("/get").Reply(200).BodyString(`{"hello":"world""}`)
+	gock.New(binPath).
+		Get("/get").
+		Reply(200).
+		BodyString(`{"hello":"world""}`)
 
 	failRes, err := http.Get(binPath + "/get")
 	if err != nil {
@@ -180,7 +191,10 @@ func TestBody(t *testing.T) {
 
 func TestHeader(t *testing.T) {
 	defer gock.Off()
-	gock.New(binPath).Reply(200).SetHeader("X-Some-Header", "test")
+	gock.New(binPath).
+		Reply(200).
+		SetHeader("X-Some-Header", "test")
+
 	okRes, err := http.Get(binPath)
 	if err != nil {
 		t.Fatal(err)
