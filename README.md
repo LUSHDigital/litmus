@@ -82,10 +82,7 @@ url="http://{{.base_service_url}}/post"
 wants_code= 200
 # note that we reuse the previously set value in the body.
 body='''
-{
-	"from_env":"{{.example_value}}",
-	"test":"{{.some_key}}"
-}
+{"from_env":"{{.example_value}}","test":"{{.some_key}}"}
 '''
 [litmus.test.headers]
 Content-Type = "application/json"
