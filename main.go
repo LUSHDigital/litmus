@@ -92,7 +92,7 @@ func runRequests(config string, name string) (err error) {
 	return
 }
 
-func loadRequests(config string) (tests []format.LitmusFile, err error) {
+func loadRequests(config string) (tests []format.TestFile, err error) {
 	const testFileGlob = "*_test.toml"
 
 	config = strings.TrimSuffix(config, "/") + "/"
@@ -105,7 +105,7 @@ func loadRequests(config string) (tests []format.LitmusFile, err error) {
 	}
 
 	for _, file := range files {
-		var lit format.LitmusFile
+		var lit format.TestFile
 		if err = unmarhsal(file, &lit); err != nil {
 			return
 		}

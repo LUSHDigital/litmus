@@ -1,8 +1,8 @@
 // Package format defines the format of a Litmus test file, as represented in code.
 package format
 
-// LitmusFile is the top level container element defining a Litmus test file
-type LitmusFile struct {
+// TestFile is the top level container element defining a Litmus test file
+type TestFile struct {
 	// Litmus is the top level table
 	Litmus struct {
 		// test is singular to enable singular dot notation in the file

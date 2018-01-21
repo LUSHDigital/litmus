@@ -35,7 +35,7 @@ func TestLitmusFileFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var file LitmusFile
+	var file TestFile
 	if err = toml.Unmarshal(b, &file); err != nil {
 		t.Fatal(err)
 	}
