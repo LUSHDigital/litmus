@@ -18,7 +18,7 @@ Usage:
 
 Flags:
   -c, --config string            path to configuration folder
-  -e, --env *pkg.KeyValuePairs   environment variables: example baseurl=httpbin.org" (default &pkg.KeyValuePairs(nil))
+  -e, --env *pkg.KeyValuePairs   environment variables: example baseurl=httpbin.org"
   -h, --help                     help for litmus
   -n, --test string              name of specific test to run
 
