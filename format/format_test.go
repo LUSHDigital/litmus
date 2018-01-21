@@ -26,6 +26,11 @@ var testFile = `
 	name="httpbin get - check body"
 	method= "GET"
 	url= "http://{{.base_service_url}}/get"
+	[litmus.test.query]
+	foo = "bar"
+	baz = "qux"
+	[litmus.test.headers]
+	Content-Type = "application/json"
 	[[litmus.test.getters]]
 	type="body"
 	path="headers.Connection"

@@ -60,6 +60,9 @@ The `*_test.toml` files contain the requests that will be made.  They're execute
 	method="GET"
 	url="http://{{.base_service_url}}/get"
 	want_code=200
+[litmus.test.query]
+    foo = "bar"
+    baz = "qux"
 [[litmus.test.getters]] # multiple getters arrays are ok!
 	type="body"
 	path="headers.Connection"
@@ -77,7 +80,6 @@ name= "httpbin post - returns post data"
 method= "POST"
 url="http://{{.base_service_url}}/post"
 wants_code= 200
-headers=["Content-Type: application/json"]
 # note that we reuse the previously set value in the body.
 body='''
 {
@@ -85,6 +87,8 @@ body='''
 	"test":"{{.some_key}}"
 }
 '''
+[litmus.test.headers]
+Content-Type = "application/json"
 [[litmus.test.getters]]
 # etc...
 ```

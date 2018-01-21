@@ -16,7 +16,7 @@ type KeyValuePairs []KeyValuePair
 
 // String returns the string representation of KeyValuePairs.
 func (k *KeyValuePairs) String() string {
-	return fmt.Sprintf("%#+v", k)
+	return ""
 }
 
 // Set adds an item to KeyValuePairs.
