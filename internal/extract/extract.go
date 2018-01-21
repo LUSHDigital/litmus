@@ -18,16 +18,16 @@ import (
 	"github.com/ladydascalie/litmus/internal"
 	"github.com/ladydascalie/litmus/p"
 	"github.com/ladydascalie/litmus/pkg"
-	e "github.com/pkg/errors"
+	"github.com/pkg/errors"
 )
 
 // StatusCode - extracts the status code and checks it against the expected value
 func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interface{}) error {
 	if resp == nil {
-		return e.New("unexpected nil response")
+		return errors.New("unexpected nil response")
 	}
 	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
-		return e.Errorf("expected response code: %s, but got: %s",
+		return errors.Errorf("expected response code: %s, but got: %s",
 			internal.HttpStatusFmt(r.WantsCode),
 			internal.HttpStatusFmt(resp.StatusCode),
 		)
@@ -38,7 +38,7 @@ func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interfac
 // Body - checks the body against the expected value
 func Body(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
-		return e.New("unexpected nil response")
+		return errors.New("unexpected nil response")
 	}
 	getters := r.Getters.Filter("body")
 	if len(getters) == 0 {
@@ -50,12 +50,12 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 	// the response body.
 	bodyGetter, err := pkg.NewBodyGetter(resp)
 	if err != nil {
-		return e.Wrap(err, "creating body getter")
+		return errors.Wrap(err, "creating body getter")
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return e.Wrap(err, "reading response body")
+		return errors.Wrap(err, "reading response body")
 	}
 	defer resp.Body.Close()
 
@@ -67,13 +67,13 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 
 		if getter.Expected != "" {
 			if err = equals(getter.Expected, act); err != nil {
-				return e.Wrap(err, "assertion failed")
+				return errors.Wrap(err, "assertion failed")
 			}
 		}
 
 		if getter.Set != "" {
 			if env == nil {
-				return e.Errorf("error setting environment variable %s", getter.Set)
+				return errors.Errorf("error setting environment variable %s", getter.Set)
 			}
 			env[getter.Set] = act
 			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
@@ -86,7 +86,7 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 // Header - extracts a header value and checks it against the expected value
 func Header(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
-		return e.New("unexpected nil response")
+		return errors.New("unexpected nil response")
 	}
 	getters := r.Getters.Filter("head")
 	if len(getters) == 0 {
@@ -103,13 +103,13 @@ func Header(r format.RequestTest, resp *http.Response, env map[string]interface{
 
 		if getter.Expected != "" {
 			if err = equals(getter.Expected, act); err != nil {
-				return e.Wrap(err, "assertion failed")
+				return errors.Wrap(err, "assertion failed")
 			}
 		}
 
 		if getter.Set != "" {
 			if env == nil {
-				return e.Errorf("error setting environment variable %s", getter.Set)
+				return errors.Errorf("error setting environment variable %s", getter.Set)
 			}
 			env[getter.Set] = act
 			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
@@ -121,7 +121,7 @@ func Header(r format.RequestTest, resp *http.Response, env map[string]interface{
 
 func equals(exp string, act string) (err error) {
 	if exp != act {
-		return e.Errorf("\n\texp: %v\n\tgot: %v", exp, act)
+		return errors.Errorf("\n\texp: %v\n\tgot: %v", exp, act)
 	}
 	return
 }
