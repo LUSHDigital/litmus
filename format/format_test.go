@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -15,8 +16,28 @@ var expected = map[string]interface{}{
 	"type_classification": "standard",
 }
 
+var envFile = `
+	base_service_url="httpbin.org"
+	example_value="some example value"
+	type_classification="standard"`
+
+var testFile = `
+	[[litmus.test]]
+	name="httpbin get - check body"
+	method= "GET"
+	url= "http://{{.base_service_url}}/get"
+	[[litmus.test.getters]]
+	type="body"
+	path="headers.Connection"
+	exp="close"
+	[[litmus.test.getters]]
+	type="body"
+	path="headers.Connection"
+	exp="close"
+	set="some_key"`
+
 func TestEnvFormat(t *testing.T) {
-	b, err := ioutil.ReadFile("testdata/env.toml")
+	b, err := ioutil.ReadAll(strings.NewReader(envFile))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +52,7 @@ func TestEnvFormat(t *testing.T) {
 }
 
 func TestLitmusFileFormat(t *testing.T) {
-	b, err := ioutil.ReadFile("testdata/1_type_test.toml")
+	b, err := ioutil.ReadAll(strings.NewReader(testFile))
 	if err != nil {
 		t.Fatal(err)
 	}

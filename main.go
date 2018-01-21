@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ladydascalie/litmus/format"
-	"github.com/ladydascalie/litmus/internal/extract"
-	"github.com/ladydascalie/litmus/p"
-	"github.com/ladydascalie/litmus/pkg"
+	"github.com/codingconcepts/litmus/format"
+	"github.com/codingconcepts/litmus/internal/extract"
+	"github.com/codingconcepts/litmus/p"
+	"github.com/codingconcepts/litmus/pkg"
 	e "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -200,7 +200,7 @@ func applyEnvironment(input string) (output string, err error) {
 	return buf.String(), nil
 }
 
-func setEnvironmentFile(config string) (error) {
+func setEnvironmentFile(config string) error {
 	fullPath := filepath.Join(config, "env.toml")
 
 	// If the file doesn't exist, nil out the error because

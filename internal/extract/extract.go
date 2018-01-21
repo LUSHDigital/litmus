@@ -14,10 +14,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/ladydascalie/litmus/format"
-	"github.com/ladydascalie/litmus/internal"
-	"github.com/ladydascalie/litmus/p"
-	"github.com/ladydascalie/litmus/pkg"
+	"github.com/codingconcepts/litmus/format"
+	"github.com/codingconcepts/litmus/internal"
+	"github.com/codingconcepts/litmus/p"
+	"github.com/codingconcepts/litmus/pkg"
 	"github.com/pkg/errors"
 )
 

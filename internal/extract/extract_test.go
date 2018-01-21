@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/codingconcepts/litmus/format"
 	"github.com/h2non/gock"
-	"github.com/ladydascalie/litmus/format"
 )
 
 const binPath = "https://httpbin.org"
@@ -103,7 +103,7 @@ func TestBody(t *testing.T) {
 			args: args{
 				r: format.RequestTest{
 					Getters: format.GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "world",},
+						{Path: "hello", Type: "body", Expected: "world"},
 						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
 					},
 				},
@@ -117,7 +117,7 @@ func TestBody(t *testing.T) {
 			args: args{
 				r: format.RequestTest{
 					Getters: format.GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "world",},
+						{Path: "hello", Type: "body", Expected: "world"},
 						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
 					},
 				},
@@ -131,7 +131,7 @@ func TestBody(t *testing.T) {
 				resp: res,
 				r: format.RequestTest{
 					Getters: format.GetterConfigs{
-						{Path: "some.broken.path", Type: "body", Expected: "world",},
+						{Path: "some.broken.path", Type: "body", Expected: "world"},
 					},
 				},
 				env: nil,
@@ -144,7 +144,7 @@ func TestBody(t *testing.T) {
 				resp: res,
 				r: format.RequestTest{
 					Getters: format.GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "wrong expectation",},
+						{Path: "hello", Type: "body", Expected: "wrong expectation"},
 					},
 				},
 				env: nil,
@@ -156,7 +156,7 @@ func TestBody(t *testing.T) {
 			args: args{
 				r: format.RequestTest{
 					Getters: format.GetterConfigs{
-						{Path: "some.broken.path", Type: "body", Expected: "world",},
+						{Path: "some.broken.path", Type: "body", Expected: "world"},
 					},
 				},
 				resp: failRes,
