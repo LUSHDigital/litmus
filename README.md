@@ -18,7 +18,7 @@ Usage:
 
 Flags:
   -c, --config string            path to configuration folder
-  -e, --env *pkg.KeyValuePairs   environment variables: example baseurl=httpbin.org" (default &pkg.KeyValuePairs(nil))
+  -e, --env *pkg.KeyValuePairs   environment variables: example baseurl=httpbin.org"
   -h, --help                     help for litmus
   -n, --test string              name of specific test to run
 
@@ -48,31 +48,31 @@ The `*_test.toml` files contain the requests that will be made.  They're execute
 # this test checks if a 200 content response
 # is obtainable from the server
 [[litmus.test]]
-	name="httpbin get - check code"
-	method="GET"
-	url="https://{{.base_service_url}}/get"
-	wants_code=200
+name="httpbin get - check code"
+method="GET"
+url="https://{{.base_service_url}}/get"
+wants_code=200
 
 # this test checks if the body contains the "Connection"
 # field, set to the value "close"
 [[litmus.test]]
-	name="httpbin get - check body"
-	method="GET"
-	url="http://{{.base_service_url}}/get"
-	want_code=200
+name="httpbin get - check body"
+method="GET"
+url="http://{{.base_service_url}}/get"
+want_code=200
 [litmus.test.query]
-    foo = "bar"
-    baz = "qux"
+foo = "bar"
+baz = "qux"
 [[litmus.test.getters]] # multiple getters arrays are ok!
-	type="body"
-	path="headers.Connection"
-	exp="close"
-	set="some_key"
-	# here, if the path "headers.Connection" exists in
-	# the JSON body returned by the request,
-	# we capture that value and set 'some_key'
-	# in the environment. This value can
-	# be reused in future requests if needed!
+type="body"
+path="headers.Connection"
+exp="close"
+set="some_key"
+# here, if the path "headers.Connection" exists in
+# the JSON body returned by the request,
+# we capture that value and set 'some_key'
+# in the environment. This value can
+# be reused in future requests if needed!
 
 # This is an example for a post request
 [[litmus.test]]
@@ -82,10 +82,7 @@ url="http://{{.base_service_url}}/post"
 wants_code= 200
 # note that we reuse the previously set value in the body.
 body='''
-{
-	"from_env":"{{.example_value}}",
-	"test":"{{.some_key}}"
-}
+{"from_env":"{{.example_value}}","test":"{{.some_key}}"}
 '''
 [litmus.test.headers]
 Content-Type = "application/json"
