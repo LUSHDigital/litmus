@@ -1,5 +1,0 @@
-- name: index
-  method: GET
-  url: http://localhost/
-  getters:
-  - { type: head, path: Content-Type, exp: application/json, set: content_type }

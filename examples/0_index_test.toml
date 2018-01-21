@@ -1,0 +1,12 @@
+[litmus]
+
+[[litmus.test]]
+name="index"
+method="GET"
+url="http://{{.base_service_url}}/get"
+[[litmus.test.getters]]
+type="head"
+path="Content-Type"
+exp="application/json"
+set="content_type"
+[[litmus.test.getters]]

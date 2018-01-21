@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,100 +12,119 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/codingconcepts/litmus/pkg"
-	"github.com/fatih/color"
-	"github.com/pkg/errors"
-
-	"gopkg.in/yaml.v2"
+	"github.com/BurntSushi/toml"
+	"github.com/ladydascalie/litmus/format"
+	"github.com/ladydascalie/litmus/internal/extract"
+	"github.com/ladydascalie/litmus/p"
+	"github.com/ladydascalie/litmus/pkg"
+	e "github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
-	environment = map[string]string{}
+	environment = map[string]interface{}{}
 	client      = &http.Client{
 		Timeout: time.Second,
 	}
-
-	yellow = color.New(color.FgYellow).SprintFunc()
-	red    = color.New(color.FgRed).SprintFunc()
-	green  = color.New(color.FgGreen).SprintFunc()
-	blue   = color.New(color.FgBlue).SprintFunc()
 )
 
+func init() {
+	log.SetFlags(0)
+}
+
 func main() {
-	config := flag.String("c", "", "config path")
-	name := flag.String("n", "", "name of specific test to run")
+	// prepare the environment
+	var configPath string
+	var testByName string
+	var eVariables pkg.KeyValuePairs
 
-	var envs pkg.KeyValuePairs
-	flag.Var(&envs, "e", "environment variable")
+	rootCmd := cobra.Command{
+		Use:   "litmus",
+		Short: "Run automated HTTP requests.",
+		Long:  litmusBanner + longHelp,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := setEnvironmentFile(configPath); err != nil {
+				log.Fatal(err)
+			}
 
-	flag.Parse()
+			// Set environment from user args, taking precedence
+			// over the environment config in env.yaml.
+			for _, kvp := range eVariables {
+				environment[kvp.Key] = kvp.Value
+			}
 
-	if config == nil || *config == "" {
-		flag.Usage()
-		os.Exit(1)
+			if err := runRequests(configPath, testByName); err != nil {
+				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
+			}
+		},
 	}
+	// see usages.go for all usages
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", cFlagUsage)
+	rootCmd.Flags().StringVarP(&testByName, "test", "n", "", nFlagUsage)
+	rootCmd.Flags().VarP(&eVariables, "env", "e", eFlagUsage)
 
-	setEnvironmentFile(*config)
+	// enforce the required flags
+	rootCmd.MarkFlagRequired("config")
 
-	// Set environment from user args, taking precedence
-	// over the environment config in env.yaml.
-	for _, kvp := range envs {
-		environment[kvp.Key] = kvp.Value
-	}
-
-	if err := runRequests(*config, *name); err != nil {
-		fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
 	}
 }
 
 func runRequests(config string, name string) (err error) {
-	requests, err := loadRequests(config)
+	litmusFiles, err := loadRequests(config)
 	if err != nil {
 		return err
 	}
 
-	for _, request := range requests {
-		if name != "" && request.Name != name {
-			continue
-		}
+	for _, file := range litmusFiles {
+		for _, test := range file.Litmus.Test {
+			if name != "" && test.Name != name {
+				continue
+			}
 
-		if err = runRequest(request); err != nil {
-			return
+			if err = runRequest(test); err != nil {
+				return
+			}
 		}
 	}
 
 	return
 }
 
-func loadRequests(config string) (requests []pkg.RequestConfig, err error) {
+func loadRequests(config string) (tests []format.TestFile, err error) {
+	const testFileGlob = "*_test.toml"
+
 	config = strings.TrimSuffix(config, "/") + "/"
-	files, err := filepath.Glob(config + "*_test.yaml")
+	files, err := filepath.Glob(config + testFileGlob)
 	if err != nil {
 		return nil, err
 	}
+	if len(files) == 0 {
+		log.Fatalf("no test files found in %s folder", config)
+	}
 
 	for _, file := range files {
-		var r []pkg.RequestConfig
-		if err = unmarhsal(file, &r); err != nil {
+		var lit format.TestFile
+		if err = unmarhsal(file, &lit); err != nil {
 			return
 		}
 
-		requests = append(requests, r...)
+		tests = append(tests, lit)
 	}
-
 	return
 }
 
-func runRequest(r pkg.RequestConfig) (err error) {
+func runRequest(r format.RequestTest) (err error) {
 	if err = applyEnvironments(&r); err != nil {
-		return errors.Wrap(err, "applying environment")
+		return e.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s] %s - %s\n", blue("TEST"), r.Name, r.URL)
+	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), r.Name, r.URL)
 
 	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
 	if err != nil {
-		return errors.Wrap(err, "creating request")
+		return e.Wrap(err, "creating request")
 	}
 
 	for k, v := range r.Headers {
@@ -115,102 +133,34 @@ func runRequest(r pkg.RequestConfig) (err error) {
 
 	resp, err := client.Do(request)
 	if err != nil {
-		return errors.Wrap(err, "performing request")
+		return e.Wrap(err, "performing request")
 	}
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
-	if err = processBody(r, resp); err != nil {
-		return errors.Wrap(err, "extracting body")
+	if err = processResponse(r, resp); err != nil {
+		return e.Wrap(err, "extracting body")
 	}
 
-	fmt.Printf("\t[%s]\n", green("PASS"))
+	fmt.Printf("\t[%s]\n", p.Green("PASS"))
 	return
 }
 
-func processBody(r pkg.RequestConfig, resp *http.Response) (err error) {
-	if err = extractBody(r, resp); err != nil {
-		return
+func processResponse(r format.RequestTest, resp *http.Response) error {
+	if err := extract.StatusCode(r, resp, environment); err != nil {
+		return err
+	}
+	if err := extract.Header(r, resp, environment); err != nil {
+		return err
+	}
+	if err := extract.Body(r, resp, environment); err != nil {
+		return err
 	}
 
-	if err = extractHeader(r, resp); err != nil {
-		return
-	}
-
-	return
+	return nil
 }
 
-func extractBody(r pkg.RequestConfig, resp *http.Response) (err error) {
-	getters := r.Getters.Filter("body")
-	if len(getters) == 0 {
-		return
-	}
-
-	// If we're unable to ascertain the body type, we won't
-	// be able to extract anything and needn't bother reading
-	// the response body.
-	bodyGetter, err := pkg.NewBodyGetter(resp)
-	if err != nil {
-		return errors.Wrap(err, "creating body getter")
-	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "reading response body")
-	}
-	defer resp.Body.Close()
-
-	for _, getter := range getters {
-		act, err := bodyGetter.Get(getter, respBody)
-		if err != nil {
-			return err
-		}
-
-		if getter.Expected != "" {
-			if err = equals(getter.Expected, act); err != nil {
-				return errors.Wrap(err, "assertion failed")
-			}
-		}
-
-		if getter.Set != "" {
-			environment[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
-		}
-	}
-
-	return
-}
-
-func extractHeader(r pkg.RequestConfig, resp *http.Response) (err error) {
-	getters := r.Getters.Filter("head")
-	if len(getters) == 0 {
-		return
-	}
-
-	headerGetter := &pkg.HeaderGetter{}
-
-	for _, getter := range getters {
-		act, err := headerGetter.Get(getter, resp.Header)
-		if err != nil {
-			return err
-		}
-
-		if getter.Expected != "" {
-			if err = equals(getter.Expected, act); err != nil {
-				return errors.Wrap(err, "assertion failed")
-			}
-		}
-
-		if getter.Set != "" {
-			environment[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
-		}
-	}
-
-	return
-}
-
-func applyEnvironments(r *pkg.RequestConfig) (err error) {
+func applyEnvironments(r *format.RequestTest) (err error) {
 	r.URL, err = applyEnvironment(r.URL)
 	if err != nil {
 		return
@@ -250,44 +200,29 @@ func applyEnvironment(input string) (output string, err error) {
 	return buf.String(), nil
 }
 
-func setEnvironmentFile(config string) (err error) {
-	fullPath := filepath.Join(config, "env.yaml")
+func setEnvironmentFile(config string) (error) {
+	fullPath := filepath.Join(config, "env.toml")
 
 	// If the file doesn't exist, nil out the error because
 	// this isn't a show-stopper.
-	if _, err = os.Stat(fullPath); err != nil {
+	if _, err := os.Stat(fullPath); err != nil {
 		log.Printf("env file %q does not exist", fullPath)
 		return nil
 	}
-
-	var envConfigs []pkg.EnvironmentConfig
-	if err = unmarhsal(fullPath, &envConfigs); err != nil {
-		return
+	if err := unmarhsal(fullPath, &environment); err != nil {
+		return err
 	}
-
-	for _, envConfig := range envConfigs {
-		environment[envConfig.Key] = envConfig.Value
-	}
-
-	return
+	return nil
 }
 
 func unmarhsal(fullPath string, target interface{}) (err error) {
 	file, err := ioutil.ReadFile(fullPath)
 	if err != nil {
-		return errors.Wrap(err, "reading file")
+		return e.Wrap(err, "reading file")
+	}
+	if err = toml.Unmarshal(file, target); err != nil {
+		return e.Wrap(err, "unmarshalling")
 	}
 
-	if err = yaml.Unmarshal(file, target); err != nil {
-		return errors.Wrap(err, "unmarshalling")
-	}
-
-	return
-}
-
-func equals(exp string, act string) (err error) {
-	if exp != act {
-		return errors.Errorf("\n\texp: %v\n\tgot: %v", exp, act)
-	}
 	return
 }
