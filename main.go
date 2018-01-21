@@ -131,9 +131,11 @@ func runRequest(r format.RequestTest) (err error) {
 		request.Header.Set(k, v)
 	}
 
+	q := request.URL.Query()
 	for k, v := range r.Query {
-		request.URL.Query().Set(k, v)
+		q.Add(k, v)
 	}
+	request.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(request)
 	if err != nil {
