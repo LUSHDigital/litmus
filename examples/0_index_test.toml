@@ -1,5 +1,7 @@
 [litmus]
 
+# this test checks the response headers contain the "Content-Type" header with
+# a value of "application/json" then sets the value to "content_type"
 [[litmus.test]]
 name="index"
 method="GET"
@@ -9,4 +11,3 @@ type="head"
 path="Content-Type"
 exp="application/json"
 set="content_type"
-[[litmus.test.getters]]

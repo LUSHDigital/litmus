@@ -48,7 +48,7 @@ func main() {
 			}
 
 			// Set environment from user args, taking precedence
-			// over the environment config in env.yaml.
+			// over the environment config in env.toml.
 			for _, kvp := range eVariables {
 				environment[kvp.Key] = kvp.Value
 			}
@@ -131,6 +131,10 @@ func runRequest(r format.RequestTest) (err error) {
 		request.Header.Set(k, v)
 	}
 
+	for k, v := range r.Query {
+		request.URL.Query().Set(k, v)
+	}
+
 	resp, err := client.Do(request)
 	if err != nil {
 		return e.Wrap(err, "performing request")
@@ -173,6 +177,13 @@ func applyEnvironments(r *format.RequestTest) (err error) {
 
 	for k, v := range r.Headers {
 		r.Headers[k], err = applyEnvironment(v)
+		if err != nil {
+			return
+		}
+	}
+
+	for k, v := range r.Query {
+		r.Query[k], err = applyEnvironment(v)
 		if err != nil {
 			return
 		}

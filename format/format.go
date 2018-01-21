@@ -16,6 +16,7 @@ type RequestTest struct {
 	Method    string            `toml:"method"`
 	URL       string            `toml:"url"`
 	Headers   map[string]string `toml:"headers"`
+	Query     map[string]string `toml:"query"`
 	Body      string            `toml:"body"`
 	Getters   GetterConfigs     `toml:"getters"`
 	WantsCode int               `toml:"wants_code"`

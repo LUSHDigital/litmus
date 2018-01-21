@@ -12,6 +12,9 @@ wants_code=200
 name="httpbin get - check body"
 method= "GET"
 url= "http://{{.base_service_url}}/get"
+[litmus.test.query]
+foo = "bar"
+baz = "qux"
 [[litmus.test.getters]]
 type="body"
 path="headers.Connection"
@@ -28,10 +31,11 @@ name= "httpbin post - returns post data"
 method= "POST"
 url="http://{{.base_service_url}}/post"
 wants_code= 200
-headers=["Content-Type: application/json"]
 body='''
 {"from_env":"{{.example_value}}","test":"{{.some_key}}"}
 '''
+[litmus.test.headers]
+Content-Type = "application/json"
 [[litmus.test.getters]]
 type="body"
 path="json.from_env"
