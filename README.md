@@ -1,77 +1,106 @@
-# litmus
+# Litmus
 Run automated HTTP requests from the command line.
 
-## installation
+## Installation
 
 ```bash
-$ go get -u github.com/codingconcepts/litmus
+go get github.com/{...}/litmus
 ```
 
-## usage
+## Usage
 
 ```bash
-litmus -h
-    -c string
-        config path (default "routesdir")
-  -e value
-        environment variable
-  -n string
-        name of specific test to run
+Litmus helps you perform HTTP tests by providing a simple, TOML based DSL
+for you to write endpoint tests with
+
+Usage:
+  litmus [flags]
+
+Flags:
+  -c, --config string            path to configuration folder
+  -e, --env *pkg.KeyValuePairs   environment variables: example baseurl=httpbin.org" (default &pkg.KeyValuePairs(nil))
+  -h, --help                     help for litmus
+  -n, --test string              name of specific test to run
+
 ```
 
-## example
+## Example
 
-In this example, we talk to a local service that manages "types".  We first create a type, capture the ID that was assigned to it in the database, then delete it using the ID captured:
+In this example, we talk to [httpbin](http://httpbin.org/), perform some assertions and set some environment variables for later reuse.
 
-### config
+### Configuration
 
-The `env.yaml` file contains environment configuration that's shared between test files.
+The `env.toml` file contains environment configuration that's shared between test files.
+
+```toml
+base_service_url="httpbin.org"
+example_value="some example value"
+int_value=123
+```
+
+### Writing Tests
+
+The `*_test.toml` files contain the requests that will be made.  They're executed in the order they appear in the directory.
 
 ```yaml
-- key: type_name
-  value: Litmus Type Name
+[litmus]
 
-- key: type_classification
-  value: standard
+# this test checks if a 200 content response
+# is obtainable from the server
+[[litmus.test]]
+	name="httpbin get - check code"
+	method="GET"
+	url="https://{{.base_service_url}}/get"
+	wants_code=200
+
+# this test checks if the body contains the "Connection"
+# field, set to the value "close"
+[[litmus.test]]
+	name="httpbin get - check body"
+	method="GET"
+	url="http://{{.base_service_url}}/get"
+	want_code=200
+[[litmus.test.getters]] # multiple getters arrays are ok!
+	type="body"
+	path="headers.Connection"
+	exp="close"
+	set="some_key"
+	# here, if the path "headers.Connection" exists in
+	# the JSON body returned by the request,
+	# we capture that value and set 'some_key'
+	# in the environment. This value can
+	# be reused in future requests if needed!
+
+# This is an example for a post request
+[[litmus.test]]
+name= "httpbin post - returns post data"
+method= "POST"
+url="http://{{.base_service_url}}/post"
+wants_code= 200
+headers=["Content-Type: application/json"]
+# note that we reuse the previously set value in the body.
+body='''
+{
+	"from_env":"{{.example_value}}",
+	"test":"{{.some_key}}"
+}
+'''
+[[litmus.test.getters]]
+# etc...
 ```
 
-### tests
-
-The `*_test.yaml` files contain the requests that will be made.  They're executed in the order they appear in the directory.
-
-```yaml
-- name: create type - valid request
-  method: POST
-  url: http://{{.base_service_url}}/types
-  headers:
-    "Content-Type": "application/json"
-  body: |
-    {
-      "name": "Request Runner Type",
-      "classification": "standard"
-    }
-  getters:
-  - { path: code, type: body, exp: 200 }
-  - { path: data.type.id, type: body, set: type_id }
-
-- name: delete type - valid id
-  method: DELETE
-  url: http://{{.base_service_url}}/types/{{.type_id}}
-  getters:
-  - { path: code, type: body, exp: 200 }
-  - { path: data.type.id, type: body, exp: "{{.type_id}}" }
-  - { path: data.type.rows_affected, type: body, exp: 1 }
-```
-
-### run command
+### Run command
 
 ```bash
-$ litmus -c routesdir -e base_service_url=localhost
+# simple call
+litmus -c path/to/tests
+
+# setting environment variables on the fly.
+# note that this will supersede anything set in the env.toml
+litmus -c path/to/tests -e base_service_url=localhost
 ```
 
-## todo
-* unit tests
-* get response body into output for failures
-* tidy up `main.go`
-* support multiple header values (currently just first), possibly with optional indexer:
-  * Content-Type,0 == Content-Type
+## Roadmap
+* Display response body on failure.
+* Multiple header values support, currently only the first match will be checked, possibly with optional indexer:
+  * `Content-Type,0 == Content-Type`
