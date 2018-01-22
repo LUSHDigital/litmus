@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/LUSHDigital/litmus/format"
 	"github.com/LUSHDigital/litmus/domain/extract"
+	"github.com/LUSHDigital/litmus/format"
 	"github.com/LUSHDigital/litmus/p"
 	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
@@ -190,6 +190,9 @@ func applyEnvironments(r *format.RequestTest) (err error) {
 
 	for i := range r.Getters {
 		if r.Getters[i].Expected, err = applyEnvironment(r.Getters[i].Expected); err != nil {
+			return
+		}
+		if r.Getters[i].Path, err = applyEnvironment(r.Getters[i].Path); err != nil {
 			return
 		}
 	}
