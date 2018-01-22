@@ -16,4 +16,5 @@ for you to write endpoint tests with`
 	cFlagUsage = "path to configuration folder"
 	eFlagUsage = `environment variables: example baseurl=httpbin.org"`
 	nFlagUsage = `name of specific test to run`
+	tFlagUsage = `override timeout duration, value provided in seconds (default 5 seconds)`
 )
