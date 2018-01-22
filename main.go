@@ -223,7 +223,7 @@ func applyEnvironment(input string) (output string, err error) {
 }
 
 func setEnvironmentFile(config string, targetEnv string) error {
-	var envFile = "env.toml"
+	const envFile = "env.toml"
 	var fullPath string
 
 	// default path
