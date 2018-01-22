@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/codingconcepts/litmus/format"
-	"github.com/codingconcepts/litmus/internal/extract"
-	"github.com/codingconcepts/litmus/p"
-	"github.com/codingconcepts/litmus/pkg"
+	"github.com/LUSHDigital/litmus/format"
+	"github.com/LUSHDigital/litmus/domain/extract"
+	"github.com/LUSHDigital/litmus/p"
+	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

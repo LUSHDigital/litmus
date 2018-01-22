@@ -3,7 +3,7 @@ package pkg
 import (
 	"net/http"
 
-	"github.com/codingconcepts/litmus/format"
+	"github.com/LUSHDigital/litmus/format"
 	"github.com/pkg/errors"
 )
 

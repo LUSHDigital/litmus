@@ -1,5 +1,5 @@
 /*Package internal contains code meant for internal consumption*/
-package internal
+package domain
 
 import (
 	"fmt"

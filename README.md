@@ -1,7 +1,7 @@
 # Litmus
 Run automated HTTP requests from the command line.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/codingconcepts/litmus)](https://goreportcard.com/report/github.com/codingconcepts/litmus) [![Build Status](https://travis-ci.org/codingconcepts/litmus.svg?branch=master)](https://travis-ci.org/codingconcepts/litmus)
+[![Go Report Card](https://goreportcard.com/badge/github.com/LUSHDigital/litmus)](https://goreportcard.com/report/github.com/LUSHDigital/litmus) [![Build Status](https://travis-ci.org/LUSHDigital/litmus.svg?branch=master)](https://travis-ci.org/LUSHDigital/litmus)
 
 ## Installation
 

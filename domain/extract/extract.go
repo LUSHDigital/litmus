@@ -14,10 +14,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/codingconcepts/litmus/format"
-	"github.com/codingconcepts/litmus/internal"
-	"github.com/codingconcepts/litmus/p"
-	"github.com/codingconcepts/litmus/pkg"
+	"github.com/LUSHDigital/litmus/format"
+	"github.com/LUSHDigital/litmus/domain"
+	"github.com/LUSHDigital/litmus/p"
+	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 )
 
@@ -28,8 +28,8 @@ func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interfac
 	}
 	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
 		return errors.Errorf("expected response code: %s, but got: %s",
-			internal.HttpStatusFmt(r.WantsCode),
-			internal.HttpStatusFmt(resp.StatusCode),
+			domain.HttpStatusFmt(r.WantsCode),
+			domain.HttpStatusFmt(resp.StatusCode),
 		)
 	}
 	return nil

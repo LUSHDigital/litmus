@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/codingconcepts/litmus/format"
+	"github.com/LUSHDigital/litmus/format"
 	"github.com/h2non/gock"
 )
 

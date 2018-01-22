@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/codingconcepts/litmus/test"
+	"github.com/LUSHDigital/litmus/test"
 )
 
 func TestEnvFormat(t *testing.T) {
