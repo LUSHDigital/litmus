@@ -37,6 +37,7 @@ func main() {
 	var timeoutLen int
 	var configPath string
 	var testByName string
+	var targetEnv string
 	var eVariables pkg.KeyValuePairs
 
 	rootCmd := cobra.Command{
@@ -44,7 +45,7 @@ func main() {
 		Short: "Run automated HTTP requests.",
 		Long:  litmusBanner + longHelp,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := setEnvironmentFile(configPath); err != nil {
+			if err := setEnvironmentFile(configPath, targetEnv); err != nil {
 				log.Fatal(err)
 			}
 
@@ -68,6 +69,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", cFlagUsage)
 	rootCmd.Flags().StringVarP(&testByName, "test", "n", "", nFlagUsage)
 	rootCmd.Flags().IntVarP(&timeoutLen, "timeout", "t", 0, tFlagUsage)
+	rootCmd.Flags().StringVarP(&targetEnv, "using", "u", "", uFlagUsage)
 	rootCmd.Flags().VarP(&eVariables, "env", "e", eFlagUsage)
 
 	// enforce the required flags
@@ -220,8 +222,18 @@ func applyEnvironment(input string) (output string, err error) {
 	return buf.String(), nil
 }
 
-func setEnvironmentFile(config string) error {
-	fullPath := filepath.Join(config, "env.toml")
+func setEnvironmentFile(config string, targetEnv string) error {
+	var envFile = "env.toml"
+	var fullPath string
+
+	// default path
+	fullPath = filepath.Join(config, envFile)
+
+	if targetEnv != "" {
+		// if not using default, warn
+		fmt.Println(p.Green("Running tests using: ", filepath.Base(targetEnv)))
+		fullPath = targetEnv
+	}
 
 	// If the file doesn't exist, nil out the error because
 	// this isn't a show-stopper.
