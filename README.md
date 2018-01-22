@@ -6,7 +6,12 @@ Run automated HTTP requests from the command line.
 ## Installation
 
 ```bash
-go get github.com/{...}/litmus
+brew tap lushdigital/tools
+brew install litmus
+
+# if conflicts happen when trying to install:
+
+brew install lushdigital/tools/litmus
 ```
 
 ## Usage
@@ -43,6 +48,12 @@ int_value=123
 ### Writing Tests
 
 The `*_test.toml` files contain the requests that will be made.  They're executed in the order they appear in the directory.
+
+TOML has great editor support:
+
+- [VSCode](https://marketplace.visualstudio.com/items?itemName=be5invis.toml)
+- [Atom](https://github.com/atom/language-toml)
+- [Sublime Text](https://github.com/Gakai/sublime_toml_highlighting)
 
 ```yaml
 [litmus]
