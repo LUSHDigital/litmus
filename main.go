@@ -24,7 +24,7 @@ import (
 var (
 	environment = map[string]interface{}{}
 	client      = &http.Client{
-		Timeout: time.Second,
+		Timeout: 5 * time.Second,
 	}
 )
 
@@ -34,6 +34,7 @@ func init() {
 
 func main() {
 	// prepare the environment
+	var timeoutLen int
 	var configPath string
 	var testByName string
 	var eVariables pkg.KeyValuePairs
@@ -53,6 +54,11 @@ func main() {
 				environment[kvp.Key] = kvp.Value
 			}
 
+			// Ensure timeout is checked, if provided by the user
+			if timeoutLen != 0 {
+				client.Timeout = time.Duration(timeoutLen) * time.Second
+			}
+
 			if err := runRequests(configPath, testByName); err != nil {
 				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
 			}
@@ -61,6 +67,7 @@ func main() {
 	// see usages.go for all usages
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", cFlagUsage)
 	rootCmd.Flags().StringVarP(&testByName, "test", "n", "", nFlagUsage)
+	rootCmd.Flags().IntVarP(&timeoutLen, "timeout", "t", 0, tFlagUsage)
 	rootCmd.Flags().VarP(&eVariables, "env", "e", eFlagUsage)
 
 	// enforce the required flags
