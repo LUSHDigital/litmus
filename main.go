@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,22 +8,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/LUSHDigital/litmus/domain/extract"
 	"github.com/LUSHDigital/litmus/format"
 	"github.com/LUSHDigital/litmus/p"
 	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/tidwall/sjson"
+	"github.com/LUSHDigital/litmus/domain/extract"
 )
 
 var (
-	environment = map[string]interface{}{}
-	client      = &http.Client{
+	client = &http.Client{
 		Timeout: 5 * time.Second,
 	}
 )
@@ -46,14 +42,16 @@ func main() {
 		Short: "Run automated HTTP requests.",
 		Long:  litmusBanner + longHelp,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := setEnvironmentFile(configPath, targetEnv); err != nil {
+			// pick the env.toml and unmarshal it into a map
+			env, err := setEnvironmentFile(configPath, targetEnv)
+			if err != nil {
 				log.Fatal(err)
 			}
 
 			// Set environment from user args, taking precedence
 			// over the environment config in env.toml.
 			for _, kvp := range eVariables {
-				environment[kvp.Key] = kvp.Value
+				env[kvp.Key] = kvp.Value
 			}
 
 			// Ensure timeout is checked, if provided by the user
@@ -61,7 +59,7 @@ func main() {
 				client.Timeout = time.Duration(timeoutLen) * time.Second
 			}
 
-			if err := runRequests(configPath, testByName); err != nil {
+			if err := runRequests(configPath, testByName, env); err != nil {
 				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
 			}
 		},
@@ -81,7 +79,7 @@ func main() {
 	}
 }
 
-func runRequests(config string, name string) (err error) {
+func runRequests(config string, name string, env map[string]interface{}) (err error) {
 	litmusFiles, err := loadRequests(config)
 	if err != nil {
 		return err
@@ -93,7 +91,7 @@ func runRequests(config string, name string) (err error) {
 				continue
 			}
 
-			if err = runRequest(test); err != nil {
+			if err = runRequest(&test, env); err != nil {
 				return
 			}
 		}
@@ -125,12 +123,8 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	return
 }
 
-func runRequest(r format.RequestTest) (err error) {
-	if r.Body, err = applyBodyMods(r.Body, r.BodyModifiers); err != nil {
-		return errors.Wrap(err, "modifying body")
-	}
-
-	if err = applyEnvironments(&r); err != nil {
+func runRequest(r *format.RequestTest, env map[string]interface{}) (err error) {
+	if err := r.ApplyEnv(env); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
 
@@ -158,7 +152,7 @@ func runRequest(r format.RequestTest) (err error) {
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
-	if err = processResponse(r, resp); err != nil {
+	if err = extract.ProcessResponse(r, resp, env); err != nil {
 		return errors.Wrap(err, "extracting body")
 	}
 
@@ -166,84 +160,7 @@ func runRequest(r format.RequestTest) (err error) {
 	return
 }
 
-func processResponse(r format.RequestTest, resp *http.Response) error {
-	if err := extract.StatusCode(r, resp, environment); err != nil {
-		return err
-	}
-	if err := extract.Header(r, resp, environment); err != nil {
-		return err
-	}
-
-	return extract.Body(r, resp, environment)
-}
-
-func applyBodyMods(body string, mods map[string]interface{}) (out string, err error) {
-	// Carry over the body from the environment if configured
-	// so we've got some expected names and values to set.
-	body, err = applyEnvironment(body)
-	if err != nil {
-		return
-	}
-
-	for k, v := range mods {
-		if body, err = sjson.Set(body, k, v); err != nil {
-			return
-		}
-	}
-	return body, nil
-}
-
-func applyEnvironments(r *format.RequestTest) (err error) {
-	r.URL, err = applyEnvironment(r.URL)
-	if err != nil {
-		return
-	}
-
-	r.Body, err = applyEnvironment(r.Body)
-	if err != nil {
-		return
-	}
-
-	for k, v := range r.Headers {
-		r.Headers[k], err = applyEnvironment(v)
-		if err != nil {
-			return
-		}
-	}
-
-	for k, v := range r.Query {
-		r.Query[k], err = applyEnvironment(v)
-		if err != nil {
-			return
-		}
-	}
-
-	for i := range r.Getters {
-		if r.Getters[i].Expected, err = applyEnvironment(r.Getters[i].Expected); err != nil {
-			return
-		}
-		if r.Getters[i].Path, err = applyEnvironment(r.Getters[i].Path); err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func applyEnvironment(input string) (output string, err error) {
-	buf := &bytes.Buffer{}
-	t, err := template.New("anon").Parse(input)
-	if err != nil {
-		return "", err
-	}
-	if err = t.Execute(buf, environment); err != nil {
-		return
-	}
-
-	return buf.String(), nil
-}
-
-func setEnvironmentFile(config string, targetEnv string) error {
+func setEnvironmentFile(config string, targetEnv string) (env map[string]interface{}, err error) {
 	const envFile = "env.toml"
 	var fullPath string
 
@@ -260,10 +177,13 @@ func setEnvironmentFile(config string, targetEnv string) error {
 	// this isn't a show-stopper.
 	if _, err := os.Stat(fullPath); err != nil {
 		log.Printf("env file %q does not exist", fullPath)
-		return nil
+		return nil, err
 	}
 
-	return unmarhsal(fullPath, &environment)
+	if err := unmarhsal(fullPath, &env); err != nil {
+		return nil, err
+	}
+	return env, nil
 }
 
 func unmarhsal(fullPath string, target interface{}) (err error) {
