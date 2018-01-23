@@ -10,12 +10,11 @@
 package domain
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/pkg/errors"
 	"github.com/fatih/color"
+	"github.com/pkg/errors"
 )
 
 var yellow = color.New(color.FgHiYellow).SprintFunc()
@@ -45,14 +44,10 @@ func StatusCode(r *RequestTest, resp *http.Response, _ map[string]interface{}) e
 	return nil
 }
 
-// Body - checks the body against the expected value
+// Payload - checks the body against the expected value
 func Body(r *RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
-	}
-	getters := r.Getters.Filter("body")
-	if len(getters) == 0 {
-		return nil
 	}
 
 	// If we're unable to ascertain the body type, we won't
@@ -69,28 +64,53 @@ func Body(r *RequestTest, resp *http.Response, env map[string]interface{}) error
 	}
 	defer resp.Body.Close()
 
-	for _, getter := range getters {
-		act, err := bodyGetter.Get(getter, respBody)
+	for k, v := range r.Body {
+		path, expected, set, err := extractParam(k, v)
+		if err != nil {
+			return errors.Wrap(err, "extracting body param")
+		}
+
+		actual, err := bodyGetter.Get(path, respBody)
 		if err != nil {
 			return err
 		}
 
-		if getter.Expected != "" {
-			if err = equals(getter.Expected, act); err != nil {
-				return errors.Wrap(err, "assertion failed")
-			}
+		if err = equals(expected, actual); err != nil {
+			return errors.Wrap(err, "assertion failed")
 		}
 
-		if getter.Set != "" {
-			if env == nil {
-				return errors.Errorf("error setting environment variable %s", getter.Set)
-			}
-			env[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
+		if set != "" {
+			env[set] = actual
 		}
 	}
 
 	return nil
+}
+
+func getFirst(m map[string]interface{}) (key, val string, err error) {
+	for k, v := range m {
+		val, ok := v.(string)
+		if !ok {
+			return "", "", errors.Errorf("expected string but got: %T", val)
+		}
+		return k, val, nil
+	}
+	return "", "", nil
+}
+
+func extractParam(key string, value interface{}) (path, expected, set string, err error) {
+	switch x := value.(type) {
+	case map[string]interface{}:
+		path, expected, err = getFirst(x)
+		if err != nil {
+			return
+		}
+		return path, expected, key, err
+	case string:
+		return key, x, "", err
+	default:
+		return "", "", "", errors.Errorf("expected string but got: %T", x)
+	}
 }
 
 // Header - extracts a header value and checks it against the expected value
@@ -98,34 +118,27 @@ func Header(r *RequestTest, resp *http.Response, env map[string]interface{}) err
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
-	getters := r.Getters.Filter("head")
-	if len(getters) == 0 {
-		return nil
-	}
 
 	headerGetter := &HeaderGetter{}
 
-	for _, getter := range getters {
-		act, err := headerGetter.Get(getter, resp.Header)
+	for k, v := range r.Head {
+		path, expected, set, err := extractParam(k, v)
+		if err != nil {
+			return errors.Wrap(err, "extracting body param")
+		}
+		actual, err := headerGetter.Get(path, resp.Header)
 		if err != nil {
 			return err
 		}
 
-		if getter.Expected != "" {
-			if err = equals(getter.Expected, act); err != nil {
-				return errors.Wrap(err, "assertion failed")
-			}
+		if err = equals(expected, actual); err != nil {
+			return errors.Wrap(err, "assertion failed")
 		}
 
-		if getter.Set != "" {
-			if env == nil {
-				return errors.Errorf("error setting environment variable %s", getter.Set)
-			}
-			env[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
+		if set != "" {
+			env[set] = actual
 		}
 	}
-
 	return nil
 }
 

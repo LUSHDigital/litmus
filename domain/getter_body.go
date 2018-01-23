@@ -10,7 +10,7 @@ import (
 // BodyGetter defines the behavior or something that can
 // extract information from a response body.
 type BodyGetter interface {
-	Get(c GetterConfig, body []byte) (value string, err error)
+	Get(path string, body []byte) (value string, err error)
 }
 
 // NewBodyGetter returns the body extracter based on the
@@ -32,10 +32,10 @@ type JSONBodyGetter struct{}
 
 // Get extracts a value out of a JSON body using JSON
 // dot notation.
-func (e *JSONBodyGetter) Get(c GetterConfig, body []byte) (value string, err error) {
-	result := gjson.GetBytes(body, c.Path)
+func (e *JSONBodyGetter) Get(path string, body []byte) (value string, err error) {
+	result := gjson.GetBytes(body, path)
 	if !result.Exists() {
-		return "", errors.Errorf("no value at path %q in JSON body", c.Path)
+		return "", errors.Errorf("no value at path %q in JSON body", path)
 	}
 
 	return result.String(), nil

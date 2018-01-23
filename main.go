@@ -30,7 +30,7 @@ type runner struct {
 
 func main() {
 	// kill prefixes
-	log.SetFlags(0)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// prepare the environment
 	var timeoutLen int
@@ -138,7 +138,7 @@ func (r *runner) runRequest(req *domain.RequestTest) (err error) {
 
 	fmt.Printf("[%s] %s - %s\n", blue("TEST"), req.Name, req.URL)
 
-	request, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Body))
+	request, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Payload))
 	if err != nil {
 		return errors.Wrap(err, "creating request")
 	}

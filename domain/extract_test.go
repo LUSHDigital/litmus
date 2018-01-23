@@ -32,7 +32,7 @@ func TestStatusCode(t *testing.T) {
 	}
 
 	type args struct {
-		r    RequestTest
+		r    *RequestTest
 		resp *http.Response
 		in2  map[string]interface{}
 	}
@@ -48,7 +48,7 @@ func TestStatusCode(t *testing.T) {
 		{
 			name: "code matches",
 			args: args{
-				r: RequestTest{
+				r: &RequestTest{
 					WantsCode: 200,
 				},
 				resp: okResp,
@@ -59,7 +59,7 @@ func TestStatusCode(t *testing.T) {
 		{
 			name: "code does not match",
 			args: args{
-				r:    RequestTest{WantsCode: 200},
+				r:    &RequestTest{WantsCode: 200},
 				resp: failResp,
 				in2:  nil,
 			},
@@ -77,29 +77,18 @@ func TestStatusCode(t *testing.T) {
 
 func TestBody(t *testing.T) {
 	defer gock.Off()
-	gock.New(binPath).
-		Get("/get").
+	gock.New("/").
 		Reply(200).
-		SetHeader("Content-Type", "application/json").
-		BodyString(`{"hello":"world""}`)
+		SetHeader("content-type", "application/json").
+		BodyString(`{"hello":"world"}`)
 
-	res, err := http.Get(binPath + "/get")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	gock.New(binPath).
-		Get("/get").
-		Reply(200).
-		BodyString(`{"hello":"world""}`)
-
-	failRes, err := http.Get(binPath + "/get")
+	res, err := http.Get("/")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	type args struct {
-		r    RequestTest
+		r    *RequestTest
 		resp *http.Response
 		env  map[string]interface{}
 	}
@@ -109,74 +98,32 @@ func TestBody(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "body matched and sets key",
+			name: "simple",
 			args: args{
-				r: RequestTest{
-					Getters: GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "world"},
-						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
+				r: &RequestTest{
+					Body: map[string]interface{}{
+						"hello": "world",
 					},
 				},
 				resp: res,
-				env:  make(map[string]interface{}),
+				env:  map[string]interface{}{},
 			},
 			wantErr: false,
 		},
 		{
-			name: "body matched and sets key on nil map",
+			name: "complex",
 			args: args{
-				r: RequestTest{
-					Getters: GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "world"},
-						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
+				r: &RequestTest{
+					Body: map[string]interface{}{
+						"val": map[string]interface{}{
+							"hello": "world",
+						},
 					},
 				},
 				resp: res,
+				env:  map[string]interface{}{},
 			},
-			wantErr: true,
-		},
-		{
-			name: "body path does not match",
-			args: args{
-				resp: res,
-				r: RequestTest{
-					Getters: GetterConfigs{
-						{Path: "some.broken.path", Type: "body", Expected: "world"},
-					},
-				},
-				env: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "body expectation does not match",
-			args: args{
-				resp: res,
-				r: RequestTest{
-					Getters: GetterConfigs{
-						{Path: "hello", Type: "body", Expected: "wrong expectation"},
-					},
-				},
-				env: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing content type",
-			args: args{
-				r: RequestTest{
-					Getters: GetterConfigs{
-						{Path: "some.broken.path", Type: "body", Expected: "world"},
-					},
-				},
-				resp: failRes,
-				env:  nil,
-			},
-			wantErr: true,
-		},
-		{
-			name:    "response is nil",
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -190,23 +137,17 @@ func TestBody(t *testing.T) {
 
 func TestHeader(t *testing.T) {
 	defer gock.Off()
-	gock.New(binPath).
+	gock.New("/").
 		Reply(200).
-		SetHeader("X-Some-Header", "test")
+		SetHeader("content-type", "application/json").
+		BodyString(`{"hello":"world"}`)
 
-	okRes, err := http.Get(binPath)
+	res, err := http.Get("/")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	gock.New(binPath).Reply(200)
-	missingRes, err := http.Get(binPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	type args struct {
-		r    RequestTest
+		r    *RequestTest
 		resp *http.Response
 		env  map[string]interface{}
 	}
@@ -216,61 +157,31 @@ func TestHeader(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "header matched",
+			name: "simple",
 			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
-				resp: okRes,
-				env:  nil,
-			},
-			wantErr: false,
-		},
-		{
-			name: "header matched and sets key",
-			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
-				resp: okRes,
+				r: &RequestTest{
+					Head: map[string]interface{}{
+						"content-type": "application/json"},
+				},
+				resp: res,
 				env:  make(map[string]interface{}),
 			},
 			wantErr: false,
 		},
 		{
-			name: "header matched and sets key on nil map",
+			name: "complex",
 			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
-				resp: okRes,
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing getter type",
-			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "", Path: "X-Some-Header", Expected: "test"}}},
-				resp: okRes,
-				env:  nil,
+				r: &RequestTest{
+					Head: map[string]interface{}{
+						"some_key": map[string]interface{}{
+							"content-type": "application/json",
+						},
+					},
+				},
+				resp: res,
+				env:  make(map[string]interface{}),
 			},
 			wantErr: false,
-		},
-		{
-			name: "header missing",
-			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
-				resp: missingRes,
-				env:  nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "header value incorrect",
-			args: args{
-				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "wrong expectation"}}},
-				resp: okRes,
-				env:  nil,
-			},
-			wantErr: true,
-		},
-		{
-			name:    "nil response",
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
