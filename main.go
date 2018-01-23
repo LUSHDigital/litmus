@@ -19,17 +19,15 @@ import (
 	"github.com/LUSHDigital/litmus/domain/extract"
 )
 
-var (
-	client = &http.Client{
-		Timeout: 5 * time.Second,
-	}
-)
-
-func init() {
-	log.SetFlags(0)
+type runner struct {
+	client *http.Client
+	env    map[string]interface{}
 }
 
 func main() {
+	// kill prefixes
+	log.SetFlags(0)
+
 	// prepare the environment
 	var timeoutLen int
 	var configPath string
@@ -55,11 +53,17 @@ func main() {
 			}
 
 			// Ensure timeout is checked, if provided by the user
+			client := &http.Client{Timeout: 5 * time.Second}
 			if timeoutLen != 0 {
 				client.Timeout = time.Duration(timeoutLen) * time.Second
 			}
 
-			if err := runRequests(configPath, testByName, env); err != nil {
+			runner := runner{
+				client: client,
+				env:    env,
+			}
+
+			if err := runner.runRequests(configPath, testByName); err != nil {
 				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
 			}
 		},
@@ -79,7 +83,7 @@ func main() {
 	}
 }
 
-func runRequests(config string, name string, env map[string]interface{}) (err error) {
+func (r *runner) runRequests(config string, name string) (err error) {
 	litmusFiles, err := loadRequests(config)
 	if err != nil {
 		return err
@@ -91,7 +95,7 @@ func runRequests(config string, name string, env map[string]interface{}) (err er
 				continue
 			}
 
-			if err = runRequest(&test, env); err != nil {
+			if err = r.runRequest(&test); err != nil {
 				return
 			}
 		}
@@ -123,36 +127,36 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	return
 }
 
-func runRequest(r *format.RequestTest, env map[string]interface{}) (err error) {
-	if err := r.ApplyEnv(env); err != nil {
+func (r *runner) runRequest(req *format.RequestTest) (err error) {
+	if err := req.ApplyEnv(r.env); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), r.Name, r.URL)
+	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), req.Name, req.URL)
 
-	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
+	request, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Body))
 	if err != nil {
 		return errors.Wrap(err, "creating request")
 	}
 
-	for k, v := range r.Headers {
+	for k, v := range req.Headers {
 		request.Header.Set(k, v)
 	}
 
 	q := request.URL.Query()
-	for k, v := range r.Query {
+	for k, v := range req.Query {
 		q.Add(k, v)
 	}
 	request.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(request)
+	resp, err := r.client.Do(request)
 	if err != nil {
 		return errors.Wrap(err, "performing request")
 	}
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
-	if err = extract.ProcessResponse(r, resp, env); err != nil {
+	if err = extract.ProcessResponse(req, resp, r.env); err != nil {
 		return errors.Wrap(err, "extracting body")
 	}
 
