@@ -1,10 +1,9 @@
-package extract
+package domain
 
 import (
 	"net/http"
 	"testing"
 
-	"github.com/LUSHDigital/litmus/format"
 	"github.com/h2non/gock"
 )
 
@@ -33,7 +32,7 @@ func TestStatusCode(t *testing.T) {
 	}
 
 	type args struct {
-		r    format.RequestTest
+		r    RequestTest
 		resp *http.Response
 		in2  map[string]interface{}
 	}
@@ -49,7 +48,7 @@ func TestStatusCode(t *testing.T) {
 		{
 			name: "code matches",
 			args: args{
-				r: format.RequestTest{
+				r: RequestTest{
 					WantsCode: 200,
 				},
 				resp: okResp,
@@ -60,7 +59,7 @@ func TestStatusCode(t *testing.T) {
 		{
 			name: "code does not match",
 			args: args{
-				r:    format.RequestTest{WantsCode: 200},
+				r:    RequestTest{WantsCode: 200},
 				resp: failResp,
 				in2:  nil,
 			},
@@ -100,7 +99,7 @@ func TestBody(t *testing.T) {
 	}
 
 	type args struct {
-		r    format.RequestTest
+		r    RequestTest
 		resp *http.Response
 		env  map[string]interface{}
 	}
@@ -112,8 +111,8 @@ func TestBody(t *testing.T) {
 		{
 			name: "body matched and sets key",
 			args: args{
-				r: format.RequestTest{
-					Getters: format.GetterConfigs{
+				r: RequestTest{
+					Getters: GetterConfigs{
 						{Path: "hello", Type: "body", Expected: "world"},
 						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
 					},
@@ -126,8 +125,8 @@ func TestBody(t *testing.T) {
 		{
 			name: "body matched and sets key on nil map",
 			args: args{
-				r: format.RequestTest{
-					Getters: format.GetterConfigs{
+				r: RequestTest{
+					Getters: GetterConfigs{
 						{Path: "hello", Type: "body", Expected: "world"},
 						{Path: "hello", Type: "body", Expected: "world", Set: "some_key"},
 					},
@@ -140,8 +139,8 @@ func TestBody(t *testing.T) {
 			name: "body path does not match",
 			args: args{
 				resp: res,
-				r: format.RequestTest{
-					Getters: format.GetterConfigs{
+				r: RequestTest{
+					Getters: GetterConfigs{
 						{Path: "some.broken.path", Type: "body", Expected: "world"},
 					},
 				},
@@ -153,8 +152,8 @@ func TestBody(t *testing.T) {
 			name: "body expectation does not match",
 			args: args{
 				resp: res,
-				r: format.RequestTest{
-					Getters: format.GetterConfigs{
+				r: RequestTest{
+					Getters: GetterConfigs{
 						{Path: "hello", Type: "body", Expected: "wrong expectation"},
 					},
 				},
@@ -165,8 +164,8 @@ func TestBody(t *testing.T) {
 		{
 			name: "missing content type",
 			args: args{
-				r: format.RequestTest{
-					Getters: format.GetterConfigs{
+				r: RequestTest{
+					Getters: GetterConfigs{
 						{Path: "some.broken.path", Type: "body", Expected: "world"},
 					},
 				},
@@ -207,7 +206,7 @@ func TestHeader(t *testing.T) {
 	}
 
 	type args struct {
-		r    format.RequestTest
+		r    RequestTest
 		resp *http.Response
 		env  map[string]interface{}
 	}
@@ -219,7 +218,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "header matched",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
 				resp: okRes,
 				env:  nil,
 			},
@@ -228,7 +227,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "header matched and sets key",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
 				resp: okRes,
 				env:  make(map[string]interface{}),
 			},
@@ -237,7 +236,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "header matched and sets key on nil map",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test", Set: "some_key"}}},
 				resp: okRes,
 			},
 			wantErr: true,
@@ -245,7 +244,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "missing getter type",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "", Path: "X-Some-Header", Expected: "test"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "", Path: "X-Some-Header", Expected: "test"}}},
 				resp: okRes,
 				env:  nil,
 			},
@@ -254,7 +253,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "header missing",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "test"}}},
 				resp: missingRes,
 				env:  nil,
 			},
@@ -263,7 +262,7 @@ func TestHeader(t *testing.T) {
 		{
 			name: "header value incorrect",
 			args: args{
-				r:    format.RequestTest{Getters: format.GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "wrong expectation"}}},
+				r:    RequestTest{Getters: GetterConfigs{{Type: "head", Path: "X-Some-Header", Expected: "wrong expectation"}}},
 				resp: okRes,
 				env:  nil,
 			},

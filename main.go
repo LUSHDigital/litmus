@@ -11,12 +11,16 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/LUSHDigital/litmus/format"
-	"github.com/LUSHDigital/litmus/p"
-	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/LUSHDigital/litmus/domain/extract"
+	"github.com/fatih/color"
+	"github.com/LUSHDigital/litmus/domain"
+)
+
+var (
+	red   = color.New(color.FgHiRed).SprintFunc()
+	green = color.New(color.FgHiGreen).SprintFunc()
+	blue  = color.New(color.FgHiBlue).SprintFunc()
 )
 
 type runner struct {
@@ -33,7 +37,7 @@ func main() {
 	var configPath string
 	var testByName string
 	var targetEnv string
-	var eVariables pkg.KeyValuePairs
+	var eVariables domain.KeyValuePairs
 
 	rootCmd := cobra.Command{
 		Use:   "litmus",
@@ -64,7 +68,7 @@ func main() {
 			}
 
 			if err := runner.runRequests(configPath, testByName); err != nil {
-				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
+				fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
 			}
 		},
 	}
@@ -104,7 +108,7 @@ func (r *runner) runRequests(config string, name string) (err error) {
 	return
 }
 
-func loadRequests(config string) (tests []format.TestFile, err error) {
+func loadRequests(config string) (tests []domain.TestFile, err error) {
 	const testFileGlob = "*_test.toml"
 
 	config = strings.TrimSuffix(config, "/") + "/"
@@ -117,7 +121,7 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	}
 
 	for _, file := range files {
-		var lit format.TestFile
+		var lit domain.TestFile
 		if err = unmarhsal(file, &lit); err != nil {
 			return
 		}
@@ -127,12 +131,12 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	return
 }
 
-func (r *runner) runRequest(req *format.RequestTest) (err error) {
+func (r *runner) runRequest(req *domain.RequestTest) (err error) {
 	if err := req.ApplyEnv(r.env); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), req.Name, req.URL)
+	fmt.Printf("[%s] %s - %s\n", blue("TEST"), req.Name, req.URL)
 
 	request, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Body))
 	if err != nil {
@@ -156,11 +160,11 @@ func (r *runner) runRequest(req *format.RequestTest) (err error) {
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
-	if err = extract.ProcessResponse(req, resp, r.env); err != nil {
+	if err = domain.ProcessResponse(req, resp, r.env); err != nil {
 		return errors.Wrap(err, "extracting body")
 	}
 
-	fmt.Printf("\t[%s]\n", p.Green("PASS"))
+	fmt.Printf("\t[%s]\n", green("PASS"))
 	return
 }
 
@@ -173,7 +177,7 @@ func setEnvironmentFile(config string, targetEnv string) (env map[string]interfa
 
 	if targetEnv != "" {
 		// if not using default, warn
-		fmt.Println(p.Green("Running tests using: ", filepath.Base(targetEnv)))
+		fmt.Println(green("Running tests using: ", filepath.Base(targetEnv)))
 		fullPath = targetEnv
 	}
 

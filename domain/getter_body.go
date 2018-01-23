@@ -1,9 +1,8 @@
-package pkg
+package domain
 
 import (
 	"net/http"
 
-	"github.com/LUSHDigital/litmus/format"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 )
@@ -11,7 +10,7 @@ import (
 // BodyGetter defines the behavior or something that can
 // extract information from a response body.
 type BodyGetter interface {
-	Get(c format.GetterConfig, body []byte) (value string, err error)
+	Get(c GetterConfig, body []byte) (value string, err error)
 }
 
 // NewBodyGetter returns the body extracter based on the
@@ -33,7 +32,7 @@ type JSONBodyGetter struct{}
 
 // Get extracts a value out of a JSON body using JSON
 // dot notation.
-func (e *JSONBodyGetter) Get(c format.GetterConfig, body []byte) (value string, err error) {
+func (e *JSONBodyGetter) Get(c GetterConfig, body []byte) (value string, err error) {
 	result := gjson.GetBytes(body, c.Path)
 	if !result.Exists() {
 		return "", errors.Errorf("no value at path %q in JSON body", c.Path)

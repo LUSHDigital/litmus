@@ -3,25 +3,24 @@
 // Signatures
 //
 // it is important for consistency that each extractor follow the same function signature:
-//  func(r format.RequestTest, resp *http.Response, env map[string]interface{})
+//  func(r RequestTest, resp *http.Response, env map[string]interface{})
 //
 //
 // this will allow easier refactoring or interfacing later on if this becomes necessary.
-package extract
+package domain
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/LUSHDigital/litmus/domain"
-	"github.com/LUSHDigital/litmus/format"
-	"github.com/LUSHDigital/litmus/p"
-	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
+	"github.com/fatih/color"
 )
 
-func ProcessResponse(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+var yellow = color.New(color.FgHiYellow).SprintFunc()
+
+func ProcessResponse(r *RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if err := StatusCode(r, resp, env); err != nil {
 		return err
 	}
@@ -33,21 +32,21 @@ func ProcessResponse(r *format.RequestTest, resp *http.Response, env map[string]
 }
 
 // StatusCode - extracts the status code and checks it against the expected value
-func StatusCode(r *format.RequestTest, resp *http.Response, _ map[string]interface{}) error {
+func StatusCode(r *RequestTest, resp *http.Response, _ map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
 	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
 		return errors.Errorf("expected response code: %s, but got: %s",
-			domain.HttpStatusFmt(r.WantsCode),
-			domain.HttpStatusFmt(resp.StatusCode),
+			HttpStatusFmt(r.WantsCode),
+			HttpStatusFmt(resp.StatusCode),
 		)
 	}
 	return nil
 }
 
 // Body - checks the body against the expected value
-func Body(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+func Body(r *RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
@@ -59,7 +58,7 @@ func Body(r *format.RequestTest, resp *http.Response, env map[string]interface{}
 	// If we're unable to ascertain the body type, we won't
 	// be able to extract anything and needn't bother reading
 	// the response body.
-	bodyGetter, err := pkg.NewBodyGetter(resp)
+	bodyGetter, err := NewBodyGetter(resp)
 	if err != nil {
 		return errors.Wrap(err, "creating body getter")
 	}
@@ -87,7 +86,7 @@ func Body(r *format.RequestTest, resp *http.Response, env map[string]interface{}
 				return errors.Errorf("error setting environment variable %s", getter.Set)
 			}
 			env[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
+			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
 		}
 	}
 
@@ -95,7 +94,7 @@ func Body(r *format.RequestTest, resp *http.Response, env map[string]interface{}
 }
 
 // Header - extracts a header value and checks it against the expected value
-func Header(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+func Header(r *RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
@@ -104,7 +103,7 @@ func Header(r *format.RequestTest, resp *http.Response, env map[string]interface
 		return nil
 	}
 
-	headerGetter := &pkg.HeaderGetter{}
+	headerGetter := &HeaderGetter{}
 
 	for _, getter := range getters {
 		act, err := headerGetter.Get(getter, resp.Header)
@@ -123,7 +122,7 @@ func Header(r *format.RequestTest, resp *http.Response, env map[string]interface
 				return errors.Errorf("error setting environment variable %s", getter.Set)
 			}
 			env[getter.Set] = act
-			fmt.Printf("\t[%s]  %s -> %s\n", p.Yellow("SET"), act, getter.Set)
+			fmt.Printf("\t[%s]  %s -> %s\n", yellow("SET"), act, getter.Set)
 		}
 	}
 

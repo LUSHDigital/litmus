@@ -1,5 +1,5 @@
 // Package format defines the format of a Litmus test file, as represented in code.
-package format
+package domain
 
 import (
 	"bytes"
