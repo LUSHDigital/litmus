@@ -21,8 +21,19 @@ import (
 	"github.com/pkg/errors"
 )
 
+func ProcessResponse(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+	if err := StatusCode(r, resp, env); err != nil {
+		return err
+	}
+	if err := Header(r, resp, env); err != nil {
+		return err
+	}
+
+	return Body(r, resp, env)
+}
+
 // StatusCode - extracts the status code and checks it against the expected value
-func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interface{}) error {
+func StatusCode(r *format.RequestTest, resp *http.Response, _ map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
@@ -36,7 +47,7 @@ func StatusCode(r format.RequestTest, resp *http.Response, _ map[string]interfac
 }
 
 // Body - checks the body against the expected value
-func Body(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+func Body(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
@@ -84,7 +95,7 @@ func Body(r format.RequestTest, resp *http.Response, env map[string]interface{})
 }
 
 // Header - extracts a header value and checks it against the expected value
-func Header(r format.RequestTest, resp *http.Response, env map[string]interface{}) error {
+func Header(r *format.RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if resp == nil {
 		return errors.New("unexpected nil response")
 	}
