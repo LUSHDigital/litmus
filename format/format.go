@@ -12,14 +12,15 @@ type TestFile struct {
 
 // RequestTest defines all the necessary fields to define a Litmus test
 type RequestTest struct {
-	Name      string            `toml:"name"`
-	Method    string            `toml:"method"`
-	URL       string            `toml:"url"`
-	Headers   map[string]string `toml:"headers"`
-	Query     map[string]string `toml:"query"`
-	Body      string            `toml:"body"`
-	Getters   GetterConfigs     `toml:"getters"`
-	WantsCode int               `toml:"wants_code"`
+	Name          string                 `toml:"name"`
+	Method        string                 `toml:"method"`
+	URL           string                 `toml:"url"`
+	Headers       map[string]string      `toml:"headers"`
+	Query         map[string]string      `toml:"query"`
+	Body          string                 `toml:"body"`
+	BodyModifiers map[string]interface{} `toml:"bodymod"`
+	Getters       GetterConfigs          `toml:"getters"`
+	WantsCode     int                    `toml:"wants_code"`
 }
 
 // GetterConfigs is a slice of GetterConfig

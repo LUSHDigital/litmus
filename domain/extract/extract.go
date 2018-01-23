@@ -14,8 +14,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/LUSHDigital/litmus/format"
 	"github.com/LUSHDigital/litmus/domain"
+	"github.com/LUSHDigital/litmus/format"
 	"github.com/LUSHDigital/litmus/p"
 	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
