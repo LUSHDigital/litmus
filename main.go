@@ -19,6 +19,7 @@ import (
 	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/tidwall/sjson"
 )
 
 var (
@@ -123,6 +124,10 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 }
 
 func runRequest(r format.RequestTest) (err error) {
+	if r.Body, err = applyBodyMods(r.Body, r.BodyModifiers); err != nil {
+		return errors.Wrap(err, "modifying body")
+	}
+
 	if err = applyEnvironments(&r); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
@@ -168,6 +173,22 @@ func processResponse(r format.RequestTest, resp *http.Response) error {
 	}
 
 	return extract.Body(r, resp, environment)
+}
+
+func applyBodyMods(body string, mods map[string]interface{}) (out string, err error) {
+	// Carry over the body from the environment if configured
+	// so we've got some expected names and values to set.
+	body, err = applyEnvironment(body)
+	if err != nil {
+		return
+	}
+
+	for k, v := range mods {
+		if body, err = sjson.Set(body, k, v); err != nil {
+			return
+		}
+	}
+	return body, nil
 }
 
 func applyEnvironments(r *format.RequestTest) (err error) {
