@@ -4,6 +4,8 @@ package domain
 import (
 	"fmt"
 	"net/http"
+	"reflect"
+	"testing"
 )
 
 // HttpStatusFmt returns a string formatted representation of an HTTP status code
@@ -15,4 +17,12 @@ func HttpStatusFmt(code int) string {
 		txt = "INVALID RESPONSE CODE"
 	}
 	return fmt.Sprintf("%d (%s)", code, txt)
+}
+
+// Equals performs a deep equals against two objects and
+// fails if they're not equal.
+func Equals(tb testing.TB, exp interface{}, got interface{}) {
+	if !reflect.DeepEqual(exp, got) {
+		tb.Fatalf("\texp: %#v\n\tgot: %#v", exp, got)
+	}
 }

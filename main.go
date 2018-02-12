@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,60 +8,67 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/LUSHDigital/litmus/domain/extract"
-	"github.com/LUSHDigital/litmus/format"
-	"github.com/LUSHDigital/litmus/p"
-	"github.com/LUSHDigital/litmus/pkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/tidwall/sjson"
+	"github.com/fatih/color"
+	"github.com/LUSHDigital/litmus/domain"
 )
 
 var (
-	environment = map[string]interface{}{}
-	client      = &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	red   = color.New(color.FgHiRed).SprintFunc()
+	green = color.New(color.FgHiGreen).SprintFunc()
+	blue  = color.New(color.FgHiBlue).SprintFunc()
 )
 
-func init() {
-	log.SetFlags(0)
+type runner struct {
+	client *http.Client
+	env    map[string]interface{}
 }
 
 func main() {
+	// kill prefixes
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	// prepare the environment
 	var timeoutLen int
 	var configPath string
 	var testByName string
 	var targetEnv string
-	var eVariables pkg.KeyValuePairs
+	var eVariables domain.KeyValuePairs
 
 	rootCmd := cobra.Command{
 		Use:   "litmus",
 		Short: "Run automated HTTP requests.",
 		Long:  litmusBanner + longHelp,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := setEnvironmentFile(configPath, targetEnv); err != nil {
+			// pick the env.toml and unmarshal it into a map
+			env, err := setEnvironmentFile(configPath, targetEnv)
+			if err != nil {
 				log.Fatal(err)
 			}
 
 			// Set environment from user args, taking precedence
 			// over the environment config in env.toml.
 			for _, kvp := range eVariables {
-				environment[kvp.Key] = kvp.Value
+				env[kvp.Key] = kvp.Value
 			}
 
 			// Ensure timeout is checked, if provided by the user
+			client := &http.Client{Timeout: 5 * time.Second}
 			if timeoutLen != 0 {
 				client.Timeout = time.Duration(timeoutLen) * time.Second
 			}
 
-			if err := runRequests(configPath, testByName); err != nil {
-				fmt.Printf("\t[%s] %v\n", p.Red("FAIL"), err)
+			runner := runner{
+				client: client,
+				env:    env,
+			}
+
+			if err := runner.runRequests(configPath, testByName); err != nil {
+				fmt.Printf("\t[%s] %v\n", red("FAIL"), err)
 			}
 		},
 	}
@@ -81,7 +87,7 @@ func main() {
 	}
 }
 
-func runRequests(config string, name string) (err error) {
+func (r *runner) runRequests(config string, name string) (err error) {
 	litmusFiles, err := loadRequests(config)
 	if err != nil {
 		return err
@@ -93,7 +99,7 @@ func runRequests(config string, name string) (err error) {
 				continue
 			}
 
-			if err = runRequest(test); err != nil {
+			if err = r.runRequest(&test); err != nil {
 				return
 			}
 		}
@@ -102,7 +108,7 @@ func runRequests(config string, name string) (err error) {
 	return
 }
 
-func loadRequests(config string) (tests []format.TestFile, err error) {
+func loadRequests(config string) (tests []domain.TestFile, err error) {
 	const testFileGlob = "*_test.toml"
 
 	config = strings.TrimSuffix(config, "/") + "/"
@@ -115,7 +121,7 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	}
 
 	for _, file := range files {
-		var lit format.TestFile
+		var lit domain.TestFile
 		if err = unmarhsal(file, &lit); err != nil {
 			return
 		}
@@ -125,125 +131,44 @@ func loadRequests(config string) (tests []format.TestFile, err error) {
 	return
 }
 
-func runRequest(r format.RequestTest) (err error) {
-	if r.Body, err = applyBodyMods(r.Body, r.BodyModifiers); err != nil {
-		return errors.Wrap(err, "modifying body")
-	}
-
-	if err = applyEnvironments(&r); err != nil {
+func (r *runner) runRequest(req *domain.RequestTest) (err error) {
+	if err := req.ApplyEnv(r.env); err != nil {
 		return errors.Wrap(err, "applying environment")
 	}
 
-	fmt.Printf("[%s] %s - %s\n", p.Blue("TEST"), r.Name, r.URL)
+	fmt.Printf("[%s] %s - %s\n", blue("TEST"), req.Name, req.URL)
 
-	request, err := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Body))
+	request, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Payload))
 	if err != nil {
 		return errors.Wrap(err, "creating request")
 	}
 
-	for k, v := range r.Headers {
+	for k, v := range req.Headers {
 		request.Header.Set(k, v)
 	}
 
 	q := request.URL.Query()
-	for k, v := range r.Query {
+	for k, v := range req.Query {
 		q.Add(k, v)
 	}
 	request.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(request)
+	resp, err := r.client.Do(request)
 	if err != nil {
 		return errors.Wrap(err, "performing request")
 	}
 	defer resp.Body.Close()
 
 	// Get, set and assert stuff from the response body.
-	if err = processResponse(r, resp); err != nil {
+	if err = domain.ProcessResponse(req, resp, r.env); err != nil {
 		return errors.Wrap(err, "extracting body")
 	}
 
-	fmt.Printf("\t[%s]\n", p.Green("PASS"))
+	fmt.Printf("\t[%s]\n", green("PASS"))
 	return
 }
 
-func processResponse(r format.RequestTest, resp *http.Response) error {
-	if err := extract.StatusCode(r, resp, environment); err != nil {
-		return err
-	}
-	if err := extract.Header(r, resp, environment); err != nil {
-		return err
-	}
-
-	return extract.Body(r, resp, environment)
-}
-
-func applyBodyMods(body string, mods map[string]interface{}) (out string, err error) {
-	// Carry over the body from the environment if configured
-	// so we've got some expected names and values to set.
-	body, err = applyEnvironment(body)
-	if err != nil {
-		return
-	}
-
-	for k, v := range mods {
-		if body, err = sjson.Set(body, k, v); err != nil {
-			return
-		}
-	}
-	return body, nil
-}
-
-func applyEnvironments(r *format.RequestTest) (err error) {
-	r.URL, err = applyEnvironment(r.URL)
-	if err != nil {
-		return
-	}
-
-	r.Body, err = applyEnvironment(r.Body)
-	if err != nil {
-		return
-	}
-
-	for k, v := range r.Headers {
-		r.Headers[k], err = applyEnvironment(v)
-		if err != nil {
-			return
-		}
-	}
-
-	for k, v := range r.Query {
-		r.Query[k], err = applyEnvironment(v)
-		if err != nil {
-			return
-		}
-	}
-
-	for i := range r.Getters {
-		if r.Getters[i].Expected, err = applyEnvironment(r.Getters[i].Expected); err != nil {
-			return
-		}
-		if r.Getters[i].Path, err = applyEnvironment(r.Getters[i].Path); err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func applyEnvironment(input string) (output string, err error) {
-	buf := &bytes.Buffer{}
-	t, err := template.New("anon").Parse(input)
-	if err != nil {
-		return "", err
-	}
-	if err = t.Execute(buf, environment); err != nil {
-		return
-	}
-
-	return buf.String(), nil
-}
-
-func setEnvironmentFile(config string, targetEnv string) error {
+func setEnvironmentFile(config string, targetEnv string) (env map[string]interface{}, err error) {
 	const envFile = "env.toml"
 	var fullPath string
 
@@ -252,7 +177,7 @@ func setEnvironmentFile(config string, targetEnv string) error {
 
 	if targetEnv != "" {
 		// if not using default, warn
-		fmt.Println(p.Green("Running tests using: ", filepath.Base(targetEnv)))
+		fmt.Println(green("Running tests using: ", filepath.Base(targetEnv)))
 		fullPath = targetEnv
 	}
 
@@ -260,10 +185,13 @@ func setEnvironmentFile(config string, targetEnv string) error {
 	// this isn't a show-stopper.
 	if _, err := os.Stat(fullPath); err != nil {
 		log.Printf("env file %q does not exist", fullPath)
-		return nil
+		return nil, err
 	}
 
-	return unmarhsal(fullPath, &environment)
+	if err := unmarhsal(fullPath, &env); err != nil {
+		return nil, err
+	}
+	return env, nil
 }
 
 func unmarhsal(fullPath string, target interface{}) (err error) {
