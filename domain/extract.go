@@ -10,6 +10,7 @@
 package domain
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -100,9 +101,14 @@ func getFirst(m map[string]interface{}) (key, val string, err error) {
 
 func extractParam(key string, value interface{}) (path, expected, set string, err error) {
 	switch x := value.(type) {
-	case map[string]interface{}:
-		path, expected, err = getFirst(x)
-		if err != nil {
+	case map[string]interface{}: // TOML unmarshals to this.
+		if path, expected, err = getFirst(x); err != nil {
+			return
+		}
+		return path, expected, key, err
+	case map[interface{}]interface{}: // YAML unmarshals to this.
+		ms := convertInterfaceMap(x)
+		if path, expected, err = getFirst(ms); err != nil {
 			return
 		}
 		return path, expected, key, err
@@ -111,6 +117,14 @@ func extractParam(key string, value interface{}) (path, expected, set string, er
 	default:
 		return "", "", "", errors.Errorf("expected string but got: %T", x)
 	}
+}
+
+func convertInterfaceMap(in map[interface{}]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range in {
+		result[fmt.Sprintf("%v", k)] = v
+	}
+	return result
 }
 
 // Header - extracts a header value and checks it against the expected value

@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/LUSHDigital/litmus/domain"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/fatih/color"
-	"github.com/LUSHDigital/litmus/domain"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -111,10 +112,9 @@ func (r *runner) runRequests(config string, name string) (err error) {
 func loadRequests(config string) (tests []domain.TestFile, err error) {
 	const testFileGlob = "*_test.toml"
 
-	config = strings.TrimSuffix(config, "/") + "/"
-	files, err := filepath.Glob(config + testFileGlob)
+	files, err := glob(config, "*_test.toml", "*_test.yaml")
 	if err != nil {
-		return nil, err
+		log.Fatalf("error globbing files: %v", err)
 	}
 	if len(files) == 0 {
 		log.Fatalf("no test files found in %s folder", config)
@@ -128,6 +128,20 @@ func loadRequests(config string) (tests []domain.TestFile, err error) {
 
 		tests = append(tests, lit)
 	}
+	return
+}
+
+func glob(root string, patterns ...string) (paths []string, err error) {
+	root = strings.TrimSuffix(root, "/") + "/"
+
+	for _, pattern := range patterns {
+		files, err := filepath.Glob(root + pattern)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, files...)
+	}
+
 	return
 }
 
@@ -199,8 +213,15 @@ func unmarhsal(fullPath string, target interface{}) (err error) {
 	if err != nil {
 		return errors.Wrap(err, "reading file")
 	}
-	if err = toml.Unmarshal(file, target); err != nil {
-		return errors.Wrap(err, "unmarshalling")
+	switch strings.ToLower(filepath.Ext(fullPath)) {
+	case ".toml":
+		if err = toml.Unmarshal(file, target); err != nil {
+			return errors.Wrap(err, "unmarshalling")
+		}
+	case ".yaml":
+		if err = yaml.Unmarshal(file, target); err != nil {
+			return errors.Wrap(err, "unmarshalling")
+		}
 	}
 
 	return

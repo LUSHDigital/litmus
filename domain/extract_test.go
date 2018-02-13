@@ -4,7 +4,10 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/BurntSushi/toml"
+	"github.com/LUSHDigital/litmus/test"
 	"github.com/h2non/gock"
+	"gopkg.in/yaml.v2"
 )
 
 const binPath = "https://httpbin.org"
@@ -191,4 +194,85 @@ func TestHeader(t *testing.T) {
 			}
 		})
 	}
+}
+
+var tomlInput = `
+[litmus]
+[[litmus.test]]
+[litmus.test.head]
+User-Agent = "Mozilla"`
+
+var tomlInputSetter = `
+[litmus]
+[[litmus.test]]
+[litmus.test.head]
+content_type = {"Content-Type"="application/json"}`
+
+var yamlInput = `
+litmus:
+    test:
+    - head:
+        User-Agent: Mozilla`
+
+var yamlInputSetter = `
+litmus:
+    test:
+    - head:
+        content_type:
+            Content-Type: application/json`
+
+func TestExtractParamTOML(t *testing.T) {
+	var tf TestFile
+	if err := toml.Unmarshal([]byte(tomlInput), &tf); err != nil {
+		t.Fatalf("error unmarshalling test file: %v", err)
+	}
+
+	userAgent := tf.Litmus.Test[0].Head
+	path, exp, set, err := extractParam("User-Agent", userAgent["User-Agent"])
+	test.Equals(t, "User-Agent", path)
+	test.Equals(t, "Mozilla", exp)
+	test.Equals(t, "", set)
+	test.ErrorNil(t, err)
+}
+
+func TestExtractParamTOMLSetter(t *testing.T) {
+	var tf TestFile
+	if err := toml.Unmarshal([]byte(tomlInputSetter), &tf); err != nil {
+		t.Fatalf("error unmarshalling test file: %v", err)
+	}
+
+	contentType := tf.Litmus.Test[0].Head
+	path, exp, set, err := extractParam("content_type", contentType["content_type"])
+	test.Equals(t, "Content-Type", path)
+	test.Equals(t, "application/json", exp)
+	test.Equals(t, "content_type", set)
+	test.ErrorNil(t, err)
+}
+
+func TestExtractParamYAML(t *testing.T) {
+	var tf TestFile
+	if err := yaml.Unmarshal([]byte(yamlInput), &tf); err != nil {
+		t.Fatalf("error unmarshalling test file: %v", err)
+	}
+
+	userAgent := tf.Litmus.Test[0].Head
+	path, exp, set, err := extractParam("User-Agent", userAgent["User-Agent"])
+	test.Equals(t, "User-Agent", path)
+	test.Equals(t, "Mozilla", exp)
+	test.Equals(t, "", set)
+	test.ErrorNil(t, err)
+}
+
+func TestExtractParamYAMLSetter(t *testing.T) {
+	var tf TestFile
+	if err := yaml.Unmarshal([]byte(yamlInputSetter), &tf); err != nil {
+		t.Fatalf("error unmarshalling test file: %v", err)
+	}
+
+	contentType := tf.Litmus.Test[0].Head
+	path, exp, set, err := extractParam("content_type", contentType["content_type"])
+	test.Equals(t, "Content-Type", path)
+	test.Equals(t, "application/json", exp)
+	test.Equals(t, "content_type", set)
+	test.ErrorNil(t, err)
 }
