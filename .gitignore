@@ -12,6 +12,7 @@ launch.json
 
 # debug output
 debug
+debug.test
 
 # test artifacts
 coverage.out

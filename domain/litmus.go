@@ -3,32 +3,35 @@ package domain
 
 import (
 	"bytes"
-	"github.com/tidwall/sjson"
-	"text/template"
 	"fmt"
+	"text/template"
+
+	"github.com/tidwall/sjson"
 )
 
 // TestFile is the top level container element defining a Litmus test file
 type TestFile struct {
 	// Litmus is the top level table
-	Litmus struct {
-		// test is singular to enable singular dot notation in the file
-		Test []RequestTest
-	}
+	Litmus Litmus
+}
+
+type Litmus struct {
+	// test is singular to enable singular dot notation in the file
+	Test []RequestTest
 }
 
 // RequestTest defines all the necessary fields to define a Litmus test
 type RequestTest struct {
-	Name          string                 `toml:"name"`
-	Method        string                 `toml:"method"`
-	URL           string                 `toml:"url"`
-	Headers       map[string]string      `toml:"headers"`
-	Query         map[string]string      `toml:"query"`
-	Payload       string                 `toml:"payload"`
-	BodyModifiers map[string]interface{} `toml:"bodymod"`
-	Body          map[string]interface{} `toml:"body"`
-	Head          map[string]interface{} `toml:"head"`
-	WantsCode     int                    `toml:"wants_code"`
+	Name          string                 `toml:"name" yaml:"name"`
+	Method        string                 `toml:"method" yaml:"method"`
+	URL           string                 `toml:"url" yaml:"url"`
+	Headers       map[string]string      `toml:"headers" yaml:"headers"`
+	Query         map[string]string      `toml:"query" yaml:"query"`
+	Payload       string                 `toml:"payload" yaml:"payload"`
+	BodyModifiers map[string]interface{} `toml:"bodymod" yaml:"bodymod"`
+	Body          map[string]interface{} `toml:"body" yaml:"body"`
+	Head          map[string]interface{} `toml:"head" yaml:"head"`
+	WantsCode     int                    `toml:"wants_code" yaml:"wants_code"`
 }
 
 // GetterConfigs is a slice of GetterConfig
@@ -37,10 +40,10 @@ type GetterConfigs []GetterConfig
 // GetterConfig provides the information required
 // to get data from a response.
 type GetterConfig struct {
-	Path     string `toml:"path"`
-	Set      string `toml:"set"`
-	Type     string `toml:"type"`
-	Expected string `toml:"exp"`
+	Path     string `toml:"path" yaml:"path"`
+	Set      string `toml:"set" yaml:"set"`
+	Type     string `toml:"type" yaml:"type"`
+	Expected string `toml:"exp" yaml:"exp"`
 }
 
 func (r *RequestTest) ApplyEnv(env map[string]interface{}) (err error) {
