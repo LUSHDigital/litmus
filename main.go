@@ -110,8 +110,6 @@ func (r *runner) runRequests(config string, name string) (err error) {
 }
 
 func loadRequests(config string) (tests []domain.TestFile, err error) {
-	const testFileGlob = "*_test.toml"
-
 	files, err := glob(config, "*_test.toml", "*_test.yaml")
 	if err != nil {
 		log.Fatalf("error globbing files: %v", err)

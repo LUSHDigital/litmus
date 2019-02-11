@@ -21,5 +21,4 @@ func Test_ExpandEnv(t *testing.T) {
 	Equals(t, "whatever", requestEnv["value2"])
 	Equals(t, "123", requestEnv["key3"])
 	Equals(t, "value1", requestEnv["key4"])
-
 }

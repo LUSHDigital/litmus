@@ -14,11 +14,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
-
-var yellow = color.New(color.FgHiYellow).SprintFunc()
 
 func ProcessResponse(r *RequestTest, resp *http.Response, env map[string]interface{}) error {
 	if err := StatusCode(r, resp, env); err != nil {

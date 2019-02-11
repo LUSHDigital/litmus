@@ -91,13 +91,13 @@ func modifyRequestEnv(requestEnv map[string]interface{}, globalEnv map[string]in
 		// otherwise continue as normal
 		key, err := applyTpl(k, globalEnv)
 		if err != nil {
-			//return err
+			return err
 		}
 
 		val := fmt.Sprintf("%v", v)
 		value, err := applyTpl(val, globalEnv)
 		if err != nil {
-			//return err
+			return err
 		}
 
 		requestEnv[key] = value
@@ -117,7 +117,7 @@ func handleMap(m, globalEnv map[string]interface{}) error {
 
 		val, ok := v.(string)
 		if !ok {
-			fmt.Errorf("expected string but got %T", val)
+			return fmt.Errorf("expected string but got %T", val)
 		}
 
 		result, err := applyTpl(val, globalEnv)

@@ -5,7 +5,9 @@
 [[litmus.test]]
 name="index"
 method="GET"
-url="http://{{.base_service_url}}/get"
-payload = "bla"
+url="http://{{.base_service_url}}/"
 [litmus.test.head]
-content_type = {"Content-Type"="{{.json}}"}
+content_type = {Content-Type="{{.json}}"}
+key-1 = "value-1"
+[litmus.test.body]
+key-2 = "value-2"

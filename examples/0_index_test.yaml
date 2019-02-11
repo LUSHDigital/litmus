@@ -1,0 +1,10 @@
+litmus:
+  test:
+    - name: index
+      method: GET
+      url: 'http://{{.base_service_url}}/'
+      head:
+        Content-Type: '{{.json}}'
+        key-1: value-1
+      body:
+        key-2: value-2

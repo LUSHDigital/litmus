@@ -13,6 +13,7 @@ launch.json
 # debug output
 debug
 debug.test
+litmus_local
 
 # test artifacts
 coverage.out
