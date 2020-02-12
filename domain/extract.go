@@ -35,8 +35,8 @@ func StatusCode(r *RequestTest, resp *http.Response, _ map[string]interface{}) e
 	}
 	if r.WantsCode != 0 && r.WantsCode != resp.StatusCode {
 		return errors.Errorf("expected response code: %s, but got: %s",
-			HttpStatusFmt(r.WantsCode),
-			HttpStatusFmt(resp.StatusCode),
+			http.StatusText(r.WantsCode),
+			http.StatusText(resp.StatusCode),
 		)
 	}
 	return nil

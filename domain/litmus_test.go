@@ -2,6 +2,8 @@ package domain
 
 import (
 	"testing"
+
+	"github.com/LUSHDigital/litmus/test"
 )
 
 func Test_ExpandEnv(t *testing.T) {
@@ -18,7 +20,7 @@ func Test_ExpandEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Equals(t, "whatever", requestEnv["value2"])
-	Equals(t, "123", requestEnv["key3"])
-	Equals(t, "value1", requestEnv["key4"])
+	test.Equals(t, "whatever", requestEnv["value2"])
+	test.Equals(t, "123", requestEnv["key3"])
+	test.Equals(t, "value1", requestEnv["key4"])
 }
